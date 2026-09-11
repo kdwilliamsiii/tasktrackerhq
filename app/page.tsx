@@ -1,0 +1,11 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { AppShell } from "./components/app-shell";
+type Task = { id: string; title: string; completed: boolean; priority: string };
+export default function DashboardPage() {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  useEffect(() => { fetch("/api/tasks").then((r) => r.json()).then((d) => setTasks(d.tasks || [])).catch(() => {}); }, []);
+  const completed = tasks.filter((t) => t.completed).length;
+  return <AppShell active="Overview" eyebrow="Workspace" title="Good morning, Jamie" description="Here’s what needs your attention today."><div className="stats-grid"><div className="stat-card"><span className="stat-label">Total tasks</span><strong>{tasks.length}</strong><span className="stat-change positive">Across your workspace</span></div><div className="stat-card"><span className="stat-label">Completed</span><strong>{completed}</strong><span className="stat-change positive">{tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate</span></div><div className="stat-card"><span className="stat-label">Open tasks</span><strong>{tasks.length - completed}</strong><span className="stat-change warning">Keep momentum</span></div><div className="stat-card"><span className="stat-label">Focus today</span><strong>—</strong><span className="stat-change"><em>Add an event in Calendar</em></span></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-header"><div><h2>Recent tasks</h2><p>Your latest work</p></div><Link className="text-button" href="/tasks">View all →</Link></div>{tasks.slice(0, 5).map((task) => <div className="activity-item" key={task.id}><span className={`avatar ${task.completed ? "green" : "blue"}`}>{task.completed ? "✓" : "•"}</span><span className={task.completed ? "completed" : ""}>{task.title}</span></div>)}{!tasks.length && <p className="empty-state">No tasks yet. Add your first task to get started.</p>}</section><section className="panel"><div className="panel-header"><div><h2>Plan your day</h2><p>Make time for what matters</p></div><Link className="text-button" href="/calendar">Calendar →</Link></div><p className="empty-state">Connect a calendar or add a local event to see your schedule.</p></section></div></AppShell>;
+}

@@ -1,0 +1,14 @@
+import Link from "next/link";
+
+const navigation = [
+  { href: "/", label: "Overview", icon: "◈" },
+  { href: "/tasks", label: "Tasks", icon: "□" },
+  { href: "/calendar", label: "Calendar", icon: "▦" },
+];
+
+export function AppShell({ children, active, eyebrow, title, description, action }: { children: React.ReactNode; active: string; eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
+  return <div className="app-frame"><aside className="sidebar"><Link className="brand" href="/"><span className="brand-mark">T</span><span>Taskflow</span></Link><div className="workspace-switcher"><span className="workspace-avatar">AC</span><span className="workspace-copy"><strong>Acme Co.</strong><small>Personal workspace</small></span><span className="chevron">⌄</span></div><nav className="main-nav" aria-label="Main navigation"><span className="nav-label">Workspace</span>{navigation.map((item) => <Link className={`nav-item ${active === item.label ? "active" : ""}`} href={item.href} key={item.href}><span className="nav-icon">{item.icon}</span>{item.label}</Link>)}<span className="nav-label nav-label-spaced">Manage</span><Link className={`nav-item ${active === "Settings" ? "active" : ""}`} href="/settings"><span className="nav-icon">⚙</span>Settings</Link><Link className={`nav-item ${active === "Feedback" ? "active" : ""}`} href="/admin/feedback"><span className="nav-icon">✦</span>Feedback</Link></nav><div className="sidebar-footer"><div className="upgrade-note"><span className="spark">✦</span><div><strong>Free plan</strong><small>3 of 5 members</small></div><button aria-label="Upgrade plan">→</button></div><div className="profile"><span className="profile-avatar">JD</span><span><strong>Jamie Davis</strong><small>jamie@acme.co</small></span><span className="more">•••</span></div></div></aside><main className="main-content"><header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{title}</strong></div><div className="topbar-actions"><button className="icon-button" aria-label="Search">⌕</button><button className="icon-button" aria-label="Notifications">♧<i /></button><span className="topbar-date">Friday, Oct 18</span></div></header><div className="page-content"><div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="page-description">{description}</p></div>{action && <div className="heading-action">{action}</div>}</div>{children}</div></main></div>;
+}
+
+export function PrimaryButton({ children }: { children: React.ReactNode }) { return <button className="primary-button"><span>+</span>{children}</button>; }
+export function StatusPill({ status }: { status: string }) { return <span className={`status-pill status-${status.toLowerCase().replace(" ", "-")}`}><i />{status}</span>; }
