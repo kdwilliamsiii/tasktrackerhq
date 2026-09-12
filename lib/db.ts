@@ -17,6 +17,31 @@ if (process.env.NODE_ENV !== "production") {
 export const db = client.db("tasktrackerhq");
 export { clientPromise };
 
+export type UserProfile = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role: "admin" | "user";
+  provider: string;
+  providerAccountId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function saveUserProfile(profile: UserProfile) {
+  await db.collection<UserProfile>("users").updateOne(
+    { id: profile.id },
+    { $set: profile },
+    { upsert: true },
+  );
+}
+
+export async function deleteUserProfile(id: string) {
+  const result = await db.collection<UserProfile>("users").deleteOne({ id });
+  return result.deletedCount > 0;
+}
+
 export type Task = {
   id: string;
   title: string;

@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
+import { saveUserProfile } from "./db";
 
 const admins = new Set((process.env.ADMIN_EMAILS || "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
 export const authOptions: NextAuthOptions = {
@@ -24,6 +25,22 @@ export const authOptions: NextAuthOptions = {
       if (profilePicture) token.picture = profilePicture;
       const email = token.email || (profile as { email?: string } | undefined)?.email;
       token.role = email && admins.has(email.toLowerCase()) ? "admin" : "user";
+      if (account) {
+        const profileId = token.sub || account.providerAccountId;
+        const createdAt = token.createdAt || new Date().toISOString();
+        token.createdAt = createdAt;
+        await saveUserProfile({
+          id: profileId,
+          name: token.name,
+          email: token.email,
+          image: token.picture,
+          role: token.role,
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          createdAt,
+          updatedAt: new Date().toISOString(),
+        });
+      }
       return token;
     },
     async session({ session, token }) {

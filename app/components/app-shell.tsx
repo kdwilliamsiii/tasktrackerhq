@@ -5,6 +5,7 @@ const navigation = [
   { href: "/tasks", label: "Tasks", icon: "□" },
   { href: "/focus", label: "Focus", icon: "◷" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
+  { href: "/profile", label: "Profile", icon: "◎" },
 ];
 
 export function AppShell({ children, active, eyebrow, title, description, action }: { children: React.ReactNode; active: string; eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
