@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "../components/app-shell";
 
-type FocusStats = { sessions: number; minutes: number; lastSession?: string };
+type FocusStats = { sessions: number; minutes: number; lastSession?: string; sessionDates?: string[] };
 const defaultStats: FocusStats = { sessions: 0, minutes: 0 };
 
 function formatTime(seconds: number) {
@@ -21,7 +21,7 @@ export default function FocusPage() {
     const load = window.setTimeout(() => {
       try {
         const saved = JSON.parse(localStorage.getItem("tasktracker-focus-stats") || "null") as FocusStats | null;
-        if (saved) setStats({ sessions: saved.sessions || 0, minutes: saved.minutes || 0, lastSession: saved.lastSession });
+        if (saved) setStats({ sessions: saved.sessions || 0, minutes: saved.minutes || 0, lastSession: saved.lastSession, sessionDates: saved.sessionDates || [] });
       } catch {
         setStats(defaultStats);
       }
@@ -37,7 +37,8 @@ export default function FocusPage() {
         if (current > 1) return current - 1;
         setRunning(false);
         setStats((currentStats) => {
-          const next = { sessions: currentStats.sessions + 1, minutes: currentStats.minutes + duration, lastSession: new Date().toISOString() };
+          const completedAt = new Date().toISOString();
+          const next = { sessions: currentStats.sessions + 1, minutes: currentStats.minutes + duration, lastSession: completedAt, sessionDates: [...(currentStats.sessionDates || []), completedAt].slice(-365) };
           localStorage.setItem("tasktracker-focus-stats", JSON.stringify(next));
           return next;
         });

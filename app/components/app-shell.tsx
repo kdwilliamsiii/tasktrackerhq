@@ -1,4 +1,11 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
+import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import SearchBar from "../../components/SearchBar";
+import { useNotifications } from "../../components/NotificationProvider";
 
 const navigation = [
   { href: "/", label: "Overview", icon: "◈" },
@@ -9,8 +16,56 @@ const navigation = [
 ];
 
 export function AppShell({ children, active, eyebrow, title, description, action }: { children: React.ReactNode; active: string; eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
-  return <div className="app-frame"><aside className="sidebar"><Link className="brand" href="/"><span className="brand-mark">T</span><span>TaskTrackerHQ</span></Link><div className="workspace-switcher"><span className="workspace-avatar">AC</span><span className="workspace-copy"><strong>Acme Co.</strong><small>Personal workspace</small></span><span className="chevron">⌄</span></div><nav className="main-nav" aria-label="Main navigation"><span className="nav-label">Workspace</span>{navigation.map((item) => <Link className={`nav-item ${active === item.label ? "active" : ""}`} href={item.href} key={item.href}><span className="nav-icon">{item.icon}</span>{item.label}</Link>)}<span className="nav-label nav-label-spaced">Manage</span><Link className={`nav-item ${active === "Settings" ? "active" : ""}`} href="/settings"><span className="nav-icon">⚙</span>Settings</Link><Link className={`nav-item ${active === "Feedback" ? "active" : ""}`} href="/admin/feedback"><span className="nav-icon">✦</span>Feedback</Link></nav><div className="sidebar-footer"><div className="upgrade-note"><span className="spark">✦</span><div><strong>Free plan</strong><small>3 of 5 members</small></div><button aria-label="Upgrade plan">→</button></div><div className="profile"><span className="profile-avatar">JD</span><span><strong>Jamie Davis</strong><small>jamie@acme.co</small></span><span className="more">•••</span></div></div></aside><main className="main-content"><header className="topbar"><div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{title}</strong></div><div className="topbar-actions"><button className="icon-button" aria-label="Search">⌕</button><button className="icon-button" aria-label="Notifications">♧<i /></button><span className="topbar-date">Friday, Oct 18</span></div></header><div className="page-content"><div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="page-description">{description}</p></div>{action && <div className="heading-action">{action}</div>}</div>{children}</div></main></div>;
+  const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [dateLabel, setDateLabel] = useState("");
+  const { data: session } = useSession();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const userName = session?.user?.name || "Guest user";
+  const userEmail = session?.user?.email || "Not signed in";
+  const userInitials = userName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "?";
+
+  useEffect(() => {
+    const updateDate = () => setDateLabel(new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" }).format(new Date()));
+    updateDate();
+    const timer = window.setInterval(updateDate, 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="app-frame">
+      <aside className="sidebar">
+        <Link className="brand" href="/"><Image className="brand-logo" src="/tasktracker-logo.jpg" alt="TaskTrackerHQ logo" width={42} height={42} priority /><span>TaskTrackerHQ</span></Link>
+        <Link className="workspace-switcher" href={session ? "/profile" : "/settings"}><span className="workspace-avatar">{userInitials}</span><span className="workspace-copy"><strong>{session ? userName : "Your workspace"}</strong><small>{session ? "Personal workspace" : "Sign in to personalize"}</small></span><span className="chevron">⌄</span></Link>
+        <nav className="main-nav" aria-label="Main navigation">
+          <span className="nav-label">Workspace</span>
+          {navigation.map((item) => <Link className={`nav-item ${active === item.label ? "active" : ""}`} href={item.href} key={item.href}><span className="nav-icon">{item.icon}</span>{item.label}</Link>)}
+          <span className="nav-label nav-label-spaced">Manage</span>
+          <Link className={`nav-item ${active === "Settings" ? "active" : ""}`} href="/settings"><span className="nav-icon">⚙</span>Settings</Link>
+          <Link className={`nav-item ${active === "Feedback" ? "active" : ""}`} href="/admin/feedback"><span className="nav-icon">✦</span>Feedback</Link>
+        </nav>
+        <div className="sidebar-footer">
+          <Link className="upgrade-note" href="/settings"><span className="spark">✦</span><div><strong>Free plan</strong><small>3 of 5 members</small></div><span aria-hidden="true">→</span></Link>
+          <div className="profile-wrap"><button className="profile" type="button" onClick={() => setProfileOpen((value) => !value)} aria-expanded={profileOpen}>{session?.user?.image ? <img className="profile-avatar profile-avatar-image" src={session.user.image} alt="" /> : <span className="profile-avatar">{userInitials}</span>}<span><strong>{userName}</strong><small>{userEmail}</small></span><span className="more">•••</span></button>{profileOpen && <div className="profile-menu"><Link href="/profile" onClick={() => setProfileOpen(false)}>Profile</Link><Link href="/settings" onClick={() => setProfileOpen(false)}>Settings</Link>{session ? <button type="button" onClick={() => void signOut({ callbackUrl: "/" })}>Sign out</button> : <Link href="/settings" onClick={() => setProfileOpen(false)}>Sign in</Link>}</div>}</div>
+        </div>
+      </aside>
+      <main className="main-content">
+        <header className="topbar">
+          <div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{title}</strong></div>
+          <div className="topbar-actions">
+            <SearchBar />
+            <div className="notification-menu">
+              <button className="icon-button" aria-label={`${unreadCount} unread notifications`} aria-expanded={open} onClick={() => setOpen((current) => !current)}>♧{unreadCount > 0 && <span className="notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}</button>
+              {open && <div className="notification-panel"><div className="notification-panel-header"><strong>Notifications</strong><button type="button" onClick={markAllAsRead} disabled={!unreadCount}>Mark all read</button></div>{notifications.length ? notifications.slice().reverse().map((item) => <button className={`notification-item ${item.read ? "is-read" : ""}`} key={item.id} type="button" onClick={() => markAsRead(item.id)}><span className={`notification-dot notification-dot-${item.tone}`} /><span>{item.message}</span></button>) : <p className="notification-empty">No notifications yet.</p>}</div>}
+            </div>
+            <span className="topbar-date">{dateLabel}</span>
+          </div>
+        </header>
+        <div className="page-content"><div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="page-description">{description}</p></div>{action && <div className="heading-action">{action}</div>}</div>{children}</div>
+      </main>
+    </div>
+  );
 }
 
-export function PrimaryButton({ children }: { children: React.ReactNode }) { return <button className="primary-button"><span>+</span>{children}</button>; }
+export function PrimaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) { return <button className="primary-button" {...props}><span>+</span>{children}</button>; }
 export function StatusPill({ status }: { status: string }) { return <span className={`status-pill status-${status.toLowerCase().replace(" ", "-")}`}><i />{status}</span>; }

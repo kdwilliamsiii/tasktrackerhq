@@ -7,6 +7,10 @@ export type ThemeColors = {
   foreground: string;
   surface: string;
   sidebar: string;
+  sidebarText: string;
+  sidebarActive?: string;
+  topbar: string;
+  topbarText: string;
   muted: string;
   navy: string;
   teal: string;
@@ -40,27 +44,29 @@ export type ThemePreset = {
 };
 
 export const themePresets: ThemePreset[] = [
-  { id: "ocean", name: "Ocean", colors: { background: "#f6f8fb", foreground: "#182230", surface: "#ffffff", sidebar: "#ffffff", muted: "#748094", navy: "#17283d", teal: "#36b7a2", orange: "#e9825b", line: "#e5e9f0" } },
-  { id: "midnight", name: "Midnight", colors: { background: "#111827", foreground: "#e5e7eb", surface: "#182235", sidebar: "#0b1220", muted: "#a7b2c4", navy: "#0b1220", teal: "#5eead4", orange: "#fb923c", line: "#293548" } },
-  { id: "lavender", name: "Lavender", colors: { background: "#f8f7fc", foreground: "#28243a", surface: "#ffffff", sidebar: "#f1effb", muted: "#827b9b", navy: "#40345f", teal: "#9b8ce0", orange: "#e39a72", line: "#e6e0f2" } },
-  { id: "forest", name: "Forest", colors: { background: "#f4f8f5", foreground: "#17231c", surface: "#ffffff", sidebar: "#eaf5ed", muted: "#688071", navy: "#193c2a", teal: "#4caf82", orange: "#d88b52", line: "#dce9df" } },
-  { id: "sunset", name: "Sunset", colors: { background: "#fff8f4", foreground: "#30201c", surface: "#ffffff", sidebar: "#fff0e9", muted: "#98766d", navy: "#5a2f2a", teal: "#e27c68", orange: "#e5a23c", line: "#f0ddd5" } },
-  { id: "candy", name: "Candy Pop", colors: { background: "#fff5fb", foreground: "#3b203d", surface: "#ffffff", sidebar: "#ffe8f5", muted: "#966282", navy: "#7b2f72", teal: "#f472b6", orange: "#fbbf24", line: "#f4cfe5" } },
-  { id: "neon", name: "Neon Arcade", colors: { background: "#101322", foreground: "#f2f4ff", surface: "#181b32", sidebar: "#0b0d1b", muted: "#a4a8ca", navy: "#25115c", teal: "#22d3ee", orange: "#f43f5e", line: "#35345c" } },
-  { id: "tropical", name: "Tropical", colors: { background: "#effcf8", foreground: "#123b3b", surface: "#ffffff", sidebar: "#ddf7f0", muted: "#5b8580", navy: "#075e54", teal: "#2dd4bf", orange: "#fb923c", line: "#c5eee5" } },
-  { id: "cosmic", name: "Cosmic", colors: { background: "#f5f3ff", foreground: "#27144d", surface: "#ffffff", sidebar: "#ebe5ff", muted: "#7969a1", navy: "#4c1d95", teal: "#8b5cf6", orange: "#ec4899", line: "#ddd2fa" } },
-  { id: "lemonade", name: "Lemonade", colors: { background: "#fffdeb", foreground: "#3f3510", surface: "#ffffff", sidebar: "#fff8c9", muted: "#887a36", navy: "#766000", teal: "#84cc16", orange: "#f59e0b", line: "#f2e7a8" } },
+  { id: "cobalt", name: "Cobalt Workbench", colors: { background: "#f3f7ff", foreground: "#172554", surface: "#ffffff", sidebar: "#2563eb", sidebarText: "#ffffff", sidebarActive: "#1d4ed8", topbar: "#e0ecff", topbarText: "#1e3a8a", muted: "#5b6f91", navy: "#1d4ed8", teal: "#06b6d4", orange: "#fb7c24", line: "#c4d9fa" } },
+  { id: "evergreen", name: "Evergreen", colors: { background: "#f1fff6", foreground: "#153b2a", surface: "#ffffff", sidebar: "#16a05d", sidebarText: "#ffffff", topbar: "#d9fbe7", topbarText: "#166534", muted: "#5f806f", navy: "#15803d", teal: "#10b981", orange: "#e58a0b", line: "#bfe9cf" } },
+  { id: "plum", name: "Plum Desk", colors: { background: "#fcf8ff", foreground: "#35145f", surface: "#ffffff", sidebar: "#9333ea", sidebarText: "#ffffff", topbar: "#f4e7ff", topbarText: "#6b21a8", muted: "#846c9b", navy: "#7e22ce", teal: "#c026d3", orange: "#fb536f", line: "#e3c9f7" } },
+  { id: "terracotta", name: "Terracotta", colors: { background: "#fff9f1", foreground: "#431407", surface: "#fffefb", sidebar: "#c2410c", sidebarText: "#ffffff", topbar: "#ffe9d2", topbarText: "#9a3412", muted: "#936e5c", navy: "#c2410c", teal: "#0f9488", orange: "#f06b21", line: "#f1ccb0" } },
+  { id: "monochrome", name: "Monochrome", colors: { background: "#fafafa", foreground: "#18181b", surface: "#ffffff", sidebar: "#52525b", sidebarText: "#ffffff", topbar: "#eeeeef", topbarText: "#27272a", muted: "#696970", navy: "#3f3f46", teal: "#71717a", orange: "#b4b4bc", line: "#d7d7dc" } },
+  { id: "lagoon", name: "Lagoon", colors: { background: "#f0feff", foreground: "#164e63", surface: "#ffffff", sidebar: "#0891b2", sidebarText: "#ffffff", topbar: "#cffafe", topbarText: "#155e75", muted: "#56808d", navy: "#0e7490", teal: "#06b6d4", orange: "#f7a51b", line: "#b9e8ef" } },
+  { id: "berry", name: "Berry Cream", colors: { background: "#fff5f6", foreground: "#4a1022", surface: "#ffffff", sidebar: "#be185d", sidebarText: "#ffffff", topbar: "#ffe4e8", topbarText: "#9f1239", muted: "#9d6377", navy: "#be185d", teal: "#e11d8a", orange: "#f07032", line: "#f1c2ce" } },
+  { id: "paper", name: "Paper & Ink", colors: { background: "#fbfcff", foreground: "#1e293b", surface: "#fffef8", sidebar: "#64748b", sidebarText: "#ffffff", topbar: "#fffef8", topbarText: "#334155", muted: "#718096", navy: "#475569", teal: "#0f9385", orange: "#c66a09", line: "#d8e0e8" } },
 ];
 
 type ThemeContextValue = {
   colors: ThemeColors;
   options: ThemeOptions;
   font: FontChoice;
+  sidebarFont: FontChoice;
+  topbarFont: FontChoice;
   selectedPreset: string;
   applyPreset: (preset: ThemePreset) => void;
   updateColor: (name: keyof ThemeColors, value: string) => void;
   updateOption: <K extends keyof ThemeOptions>(name: K, value: ThemeOptions[K]) => void;
   setFont: (font: FontChoice) => void;
+  setSidebarFont: (font: FontChoice) => void;
+  setTopbarFont: (font: FontChoice) => void;
   reset: () => void;
 };
 
@@ -69,7 +75,7 @@ const defaultOptions: ThemeOptions = { radius: "soft", density: "comfortable", s
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function normalizeColors(colors: Partial<ThemeColors>): ThemeColors {
-  return { ...defaultTheme.colors, ...colors };
+  return { ...defaultTheme.colors, sidebarActive: colors.sidebarActive || colors.teal || defaultTheme.colors.sidebarActive || "#e9f7f4", ...colors };
 }
 
 function applyColors(colors: ThemeColors) {
@@ -80,6 +86,10 @@ function applyColors(colors: ThemeColors) {
 function applyFont(font: FontChoice) {
   document.documentElement.style.setProperty("--font-app", font.family);
   document.body.style.fontFamily = font.family;
+}
+
+function applyBarFont(name: "sidebar" | "topbar", font: FontChoice) {
+  document.documentElement.style.setProperty(`--font-${name}`, font.family);
 }
 
 function applyOptions(options: ThemeOptions) {
@@ -93,6 +103,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [colors, setColors] = useState(defaultTheme.colors);
   const [selectedPreset, setSelectedPreset] = useState(defaultTheme.id);
   const [font, setFontChoice] = useState(fontChoices[0]);
+  const [sidebarFont, setSidebarFontChoice] = useState(fontChoices[0]);
+  const [topbarFont, setTopbarFontChoice] = useState(fontChoices[0]);
   const [options, setOptions] = useState(defaultOptions);
   const [hydrated, setHydrated] = useState(false);
 
@@ -108,6 +120,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
+    applyBarFont("sidebar", sidebarFont);
+  }, [hydrated, sidebarFont]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    applyBarFont("topbar", topbarFont);
+  }, [hydrated, topbarFont]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     applyOptions(options);
   }, [options, hydrated]);
 
@@ -119,12 +141,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string; font?: string; options?: ThemeOptions };
+        const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string; font?: string; sidebarFont?: string; topbarFont?: string; options?: ThemeOptions };
         const savedColors = parsed.colors ? normalizeColors(parsed.colors) : defaultTheme.colors;
         const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
+        const savedSidebarFont = fontChoices.find((choice) => choice.id === parsed.sidebarFont);
+        const savedTopbarFont = fontChoices.find((choice) => choice.id === parsed.topbarFont);
         setColors(savedColors);
         setSelectedPreset(parsed.preset || "custom");
         setFontChoice(savedFont || fontChoices[0]);
+        setSidebarFontChoice(savedSidebarFont || fontChoices[0]);
+        setTopbarFontChoice(savedTopbarFont || fontChoices[0]);
         setOptions({ ...defaultOptions, ...(parsed.options || {}) });
       } catch {
         localStorage.removeItem("tasktracker-theme");
@@ -136,27 +162,35 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(themeLoad);
   }, []);
 
-  const save = useCallback((next: ThemeColors, preset: string, nextFont = font, nextOptions = options) => {
+  const save = useCallback((next: ThemeColors, preset: string, nextFont = font, nextOptions = options, nextSidebarFont = sidebarFont, nextTopbarFont = topbarFont) => {
     setColors(next);
     setSelectedPreset(preset);
     setFontChoice(nextFont);
+    setSidebarFontChoice(nextSidebarFont);
+    setTopbarFontChoice(nextTopbarFont);
     setOptions(nextOptions);
     applyColors(next);
     applyFont(nextFont);
-    localStorage.setItem("tasktracker-theme", JSON.stringify({ colors: next, preset, font: nextFont.id, options: nextOptions }));
-  }, [font, options]);
+    applyBarFont("sidebar", nextSidebarFont);
+    applyBarFont("topbar", nextTopbarFont);
+    localStorage.setItem("tasktracker-theme", JSON.stringify({ colors: next, preset, font: nextFont.id, sidebarFont: nextSidebarFont.id, topbarFont: nextTopbarFont.id, options: nextOptions }));
+  }, [font, options, sidebarFont, topbarFont]);
 
   const value = useMemo<ThemeContextValue>(() => ({
     colors,
     selectedPreset,
-    applyPreset: (preset) => save(preset.colors, preset.id),
+    applyPreset: (preset) => save(normalizeColors(preset.colors), preset.id),
     updateColor: (name, value) => save({ ...colors, [name]: value }, "custom"),
     updateOption: (name, value) => save(colors, selectedPreset, font, { ...options, [name]: value }),
     font,
     setFont: (nextFont) => save(colors, selectedPreset, nextFont),
+    sidebarFont,
+    setSidebarFont: (nextFont) => save(colors, selectedPreset, font, options, nextFont, topbarFont),
+    topbarFont,
+    setTopbarFont: (nextFont) => save(colors, selectedPreset, font, options, sidebarFont, nextFont),
     options,
-    reset: () => save(defaultTheme.colors, defaultTheme.id, fontChoices[0], defaultOptions),
-  }), [colors, selectedPreset, font, options, save]);
+    reset: () => save(defaultTheme.colors, defaultTheme.id, fontChoices[0], defaultOptions, fontChoices[0], fontChoices[0]),
+  }), [colors, selectedPreset, font, sidebarFont, topbarFont, options, save]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

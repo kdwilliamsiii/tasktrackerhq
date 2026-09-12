@@ -10,12 +10,16 @@ const colorLabels: Array<{ key: keyof ThemeColors; label: string }> = [
   { key: "foreground", label: "Text" },
   { key: "surface", label: "Cards" },
   { key: "sidebar", label: "Sidebar" },
+  { key: "sidebarText", label: "Sidebar text" },
+  { key: "sidebarActive", label: "Sidebar active / hover" },
+  { key: "topbar", label: "Top bar" },
+  { key: "topbarText", label: "Top bar text" },
   { key: "muted", label: "Muted text" },
   { key: "line", label: "Borders" },
 ];
 
 export default function ThemeCustomizer() {
-  const { colors, selectedPreset, applyPreset, updateColor, reset, font, setFont, options, updateOption } = useTheme();
+  const { colors, selectedPreset, applyPreset, updateColor, reset, font, setFont, sidebarFont, setSidebarFont, topbarFont, setTopbarFont, options, updateOption } = useTheme();
 
   return (
     <section className="panel theme-panel">
@@ -26,7 +30,7 @@ export default function ThemeCustomizer() {
       <div className="theme-presets" aria-label="Color themes">
         {themePresets.map((preset) => (
           <button className={`theme-preset ${selectedPreset === preset.id ? "selected" : ""}`} type="button" key={preset.id} onClick={() => applyPreset(preset)} aria-pressed={selectedPreset === preset.id}>
-            <span className="theme-swatch" style={{ background: preset.colors.background, borderColor: preset.colors.line }}><i style={{ background: preset.colors.navy }} /><i style={{ background: preset.colors.teal }} /><i style={{ background: preset.colors.orange }} /></span>
+            <span className="theme-swatch" style={{ background: preset.colors.background, borderColor: preset.colors.line }}><i style={{ background: preset.colors.sidebar }} /><i style={{ background: preset.colors.topbar }} /><i style={{ background: preset.colors.teal }} /><i style={{ background: preset.colors.orange }} /></span>
             <strong>{preset.name}</strong>
           </button>
         ))}
@@ -45,6 +49,10 @@ export default function ThemeCustomizer() {
           ))}
         </div>
         <label className="color-control font-color-control"><input type="color" value={colors.foreground} onChange={(event) => updateColor("foreground", event.target.value)} /><span>Font color</span><code>{colors.foreground}</code></label>
+        <div className="bar-font-settings">
+          <label>Sidebar font<select value={sidebarFont.id} onChange={(event) => setSidebarFont(fontChoices.find((choice) => choice.id === event.target.value) || fontChoices[0])}>{fontChoices.map((choice) => <option value={choice.id} key={choice.id}>{choice.name}</option>)}</select></label>
+          <label>Top bar font<select value={topbarFont.id} onChange={(event) => setTopbarFont(fontChoices.find((choice) => choice.id === event.target.value) || fontChoices[0])}>{fontChoices.map((choice) => <option value={choice.id} key={choice.id}>{choice.name}</option>)}</select></label>
+        </div>
       </div>
       <h3 className="custom-colors-title">Interface style</h3>
       <div className="style-controls">

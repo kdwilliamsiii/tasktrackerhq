@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { AppShell, PrimaryButton } from "./components/app-shell";
 import QuickAddWidget from "../components/QuickAddWidget";
 import TaskProgressWidget from "../components/TaskProgressWidget";
@@ -11,10 +12,13 @@ import TTBotHint from "../components/TTBotHint";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
+type FocusStats = { sessions: number; minutes: number; lastSession?: string; sessionDates?: string[] };
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [focusStreak, setFocusStreak] = useState(0);
+  const { data: session } = useSession();
 
   useEffect(() => {
     fetch("/api/tasks").then((response) => response.json()).then((data) => setTasks(data.tasks || [])).catch(() => setTasks([]));
@@ -28,16 +32,37 @@ export default function DashboardPage() {
       }
     };
     const eventLoad = window.setTimeout(loadEvents, 0);
-    return () => window.clearTimeout(eventLoad);
+    const focusLoad = window.setTimeout(() => {
+      try {
+        const stats = JSON.parse(localStorage.getItem("tasktracker-focus-stats") || "null") as FocusStats | null;
+        const dates = new Set((stats?.sessionDates || []).map((date) => date.slice(0, 10)));
+        let streak = 0;
+        const cursor = new Date();
+        while (dates.has(cursor.toISOString().slice(0, 10))) {
+          streak += 1;
+          cursor.setDate(cursor.getDate() - 1);
+        }
+        setFocusStreak(streak);
+      } catch {
+        setFocusStreak(0);
+      }
+    }, 0);
+    return () => {
+      window.clearTimeout(eventLoad);
+      window.clearTimeout(focusLoad);
+    };
   }, []);
 
   const completed = tasks.filter((task) => task.completed).length;
   const openTasks = tasks.filter((task) => !task.completed).slice(0, 5);
   const today = new Date();
   const dateLabel = today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const hour = today.getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const firstName = session?.user?.name?.split(/\s+/)[0] || "there";
 
   return (
-    <AppShell active="Overview" eyebrow="Workspace" title="Dashboard" description={`Good morning, Jamie. Here's your plan for ${dateLabel}.`}>
+    <AppShell active="Overview" eyebrow="Workspace" title="Dashboard" description={`${greeting}, ${firstName}. Here's your plan for ${dateLabel}.`}>
       <section className="dashboard-hero">
         <div><span className="dashboard-kicker">TODAY&apos;S FOCUS</span><h2>Make progress on what matters.</h2><p>Stay on top of your priorities and keep your momentum going.</p></div>
         <Link href="/tasks"><PrimaryButton>New task</PrimaryButton></Link>
@@ -50,7 +75,7 @@ export default function DashboardPage() {
         <DashboardCard label="Open tasks" value={tasks.length - completed} detail="Needs attention" />
         <DashboardCard label="Completed" value={completed} detail={`${tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate`} />
         <DashboardCard label="Upcoming events" value={events.length} detail="On your calendar" />
-        <DashboardCard label="Focus streak" value="0 days" detail="Start today" accent />
+        <DashboardCard label="Focus streak" value={`${focusStreak} ${focusStreak === 1 ? "day" : "days"}`} detail={focusStreak ? "Keep the momentum going" : "Start today"} accent />
       </div>
       <div className="dashboard-grid dashboard-content-grid">
         <section className="dashboard-panel">

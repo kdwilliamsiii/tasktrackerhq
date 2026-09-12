@@ -24,6 +24,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [sort, setSort] = useState("updated");
   const { notify } = useNotifications();
 
   async function load() {
@@ -106,7 +107,17 @@ export default function TasksPage() {
     else setError("The task could not be deleted.");
   }
 
-  const shown = tasks.filter((task) => filter === "All" || (filter === "Open" ? !task.completed : task.completed));
+  const shown = tasks
+    .filter((task) => filter === "All" || (filter === "Open" ? !task.completed : task.completed))
+    .slice()
+    .sort((a, b) => {
+      if (sort === "due") return (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31");
+      if (sort === "priority") {
+        const rank = { High: 0, Medium: 1, Low: 2 };
+        return rank[a.priority] - rank[b.priority];
+      }
+      return Number(a.completed) - Number(b.completed);
+    });
 
   return (
     <AppShell active="Tasks" eyebrow="Workspace" title="Task Manager" description="Plan, prioritize, and complete your work.">
@@ -123,7 +134,7 @@ export default function TasksPage() {
       </section>
       <TTBotHint command="add a task: Review project notes">Tell TT Bot what you need to do and it can add a medium-priority task for you.</TTBotHint>
       <section className="panel task-list-panel">
-        <div className="panel-header task-list-heading"><div><h2>Your tasks</h2><p>{tasks.filter((task) => !task.completed).length} open tasks</p></div><div className="filter-tabs">{["All", "Open", "Completed"].map((name) => <button className={filter === name ? "selected" : ""} key={name} onClick={() => setFilter(name)}>{name}<b>{name === "All" ? tasks.length : name === "Open" ? tasks.filter((task) => !task.completed).length : tasks.filter((task) => task.completed).length}</b></button>)}</div></div>
+        <div className="panel-header task-list-heading"><div><h2>Your tasks</h2><p>{tasks.filter((task) => !task.completed).length} open tasks</p></div><div className="filter-tabs"><select aria-label="Sort tasks" value={sort} onChange={(event) => setSort(event.target.value)}><option value="updated">Open first</option><option value="due">Due date</option><option value="priority">Priority</option></select>{["All", "Open", "Completed"].map((name) => <button className={filter === name ? "selected" : ""} key={name} onClick={() => setFilter(name)}>{name}<b>{name === "All" ? tasks.length : name === "Open" ? tasks.filter((task) => !task.completed).length : tasks.filter((task) => task.completed).length}</b></button>)}</div></div>
         {loading ? <p className="empty-state">Loading tasks...</p> : shown.length ? <div className="task-list">{shown.map((task) => <article className={`task-row-card ${task.completed ? "is-complete" : ""}`} key={task.id}>
           <button className="task-check" onClick={() => void update(task, { completed: !task.completed })} aria-label={`Mark ${task.title} ${task.completed ? "open" : "complete"}`}>{task.completed ? "✓" : "○"}</button>
           <div className="task-row-copy"><strong>{task.title}</strong><div className="task-meta"><StatusPill status={task.priority} /><span>{task.category || "General"}</span><span className={task.dueDate && task.dueDate < new Date().toISOString().slice(0, 10) && !task.completed ? "task-overdue" : ""}>{formatDueDate(task.dueDate)}</span></div></div>
