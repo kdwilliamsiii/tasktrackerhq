@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell, PrimaryButton } from "./components/app-shell";
 import QuickAddWidget from "../components/QuickAddWidget";
 import TaskProgressWidget from "../components/TaskProgressWidget";
+import DailyOverviewWidget from "../components/DailyOverviewWidget";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
@@ -39,6 +40,7 @@ export default function DashboardPage() {
         <div><span className="dashboard-kicker">TODAY&apos;S FOCUS</span><h2>Make progress on what matters.</h2><p>Stay on top of your priorities and keep your momentum going.</p></div>
         <Link href="/tasks"><PrimaryButton>New task</PrimaryButton></Link>
       </section>
+      <DailyOverviewWidget tasks={tasks} events={events} />
       <QuickAddWidget />
       <TaskProgressWidget tasks={tasks} />
       <div className="dashboard-stats">
