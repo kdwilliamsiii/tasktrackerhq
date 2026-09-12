@@ -18,7 +18,19 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [focusStreak, setFocusStreak] = useState(0);
+  const [dateInfo, setDateInfo] = useState<{ dateLabel: string; greeting: string } | null>(null);
   const { data: session } = useSession();
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const today = new Date();
+      setDateInfo({
+        dateLabel: today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }),
+        greeting: today.getHours() < 12 ? "Good morning" : today.getHours() < 18 ? "Good afternoon" : "Good evening",
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     fetch("/api/tasks").then((response) => response.json()).then((data) => setTasks(data.tasks || [])).catch(() => setTasks([]));
@@ -55,14 +67,11 @@ export default function DashboardPage() {
 
   const completed = tasks.filter((task) => task.completed).length;
   const openTasks = tasks.filter((task) => !task.completed).slice(0, 5);
-  const today = new Date();
-  const dateLabel = today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  const hour = today.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const firstName = session?.user?.name?.split(/\s+/)[0] || "there";
+  const description = dateInfo ? `${dateInfo.greeting}, ${firstName}. Here's your plan for ${dateInfo.dateLabel}.` : "Here's your plan for today.";
 
   return (
-    <AppShell active="Overview" eyebrow="Workspace" title="Dashboard" description={`${greeting}, ${firstName}. Here's your plan for ${dateLabel}.`}>
+    <AppShell active="Overview" eyebrow="Workspace" title="Dashboard" description={description}>
       <section className="dashboard-hero">
         <div><span className="dashboard-kicker">TODAY&apos;S FOCUS</span><h2>Make progress on what matters.</h2><p>Stay on top of your priorities and keep your momentum going.</p></div>
         <Link href="/tasks"><PrimaryButton>New task</PrimaryButton></Link>

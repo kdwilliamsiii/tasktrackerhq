@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn, signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import { useState } from "react";
 import { AppShell } from "../components/app-shell";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
@@ -33,7 +34,7 @@ export default function ProfilePage() {
   return <AppShell active="Profile" eyebrow="Account" title="User Profile" description="Manage your identity, connected accounts, and preferences.">
     <div className="profile-page">
       <section className="panel profile-identity">
-        <div className="profile-identity-heading">{session.user.image ? <img className="profile-image" src={session.user.image} alt="" /> : <span className="profile-image profile-image-fallback">{session.user.name?.slice(0, 1).toUpperCase() || "?"}</span>}<div><h2>{session.user.name || "TaskTrackerHQ user"}</h2><p>{session.user.email || "No email available"}</p></div><span className={`role-badge role-${session.user.role}`}>{session.user.role}</span></div>
+        <div className="profile-identity-heading">{session.user.image ? <Image className="profile-image" src={session.user.image} alt="" width={58} height={58} /> : <span className="profile-image profile-image-fallback">{session.user.name?.slice(0, 1).toUpperCase() || "?"}</span>}<div><h2>{session.user.name || "TaskTrackerHQ user"}</h2><p>{session.user.email || "No email available"}</p></div><span className={`role-badge role-${session.user.role}`}>{session.user.role}</span></div>
         <dl className="profile-details"><div><dt>User ID</dt><dd>{session.user.id || "Unavailable"}</dd></div><div><dt>Account created</dt><dd>{session.user.createdAt ? new Date(session.user.createdAt).toLocaleDateString() : "Available after next sign-in"}</dd></div><div><dt>Authentication provider</dt><dd>{providerName}</dd></div></dl>
       </section>
       <section className="panel"><div className="settings-heading"><div><h2>Connected accounts</h2><p>Accounts available for calendar access.</p></div></div><div className="connected-account"><span className="connected-account-mark">{providerName === "Google" ? "G" : "M"}</span><div><strong>{providerName}</strong><small>{providerName} account connected</small></div><span className="connected-status">Connected</span></div><div className="button-row profile-account-actions"><button className="filter-button" onClick={() => void signIn(providerName === "Google" ? "google" : "azure-ad", { callbackUrl: "/profile" })}>Reconnect</button><button className="filter-button integration-connected" onClick={() => void signOut({ callbackUrl: "/" })}>Disconnect</button></div></section>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
@@ -27,7 +27,7 @@ export default function TasksPage() {
   const [sort, setSort] = useState("updated");
   const { notify } = useNotifications();
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/tasks");
@@ -44,12 +44,12 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [notify]);
 
   useEffect(() => {
     const taskLoad = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(taskLoad);
-  }, []);
+  }, [load]);
 
   function updateDraft(field: keyof TaskDraft, value: string) {
     setDraft((current) => ({ ...current, [field]: value }));
