@@ -1,10 +1,6 @@
 import { MongoClient, type UpdateFilter } from "mongodb";
 
-const uri = process.env.MONGO_URL;
-
-if (!uri) {
-  throw new Error("MONGO_URL is required to use the database.");
-}
+const uri = process.env.MONGO_URL || "mongodb://127.0.0.1:27017";
 
 const client = new MongoClient(uri);
 
