@@ -1,11 +1,59 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AppShell } from "./components/app-shell";
+import { AppShell, PrimaryButton } from "./components/app-shell";
+
 type Task = { id: string; title: string; completed: boolean; priority: string };
+type CalendarEvent = { id: string; title: string; date: string; provider?: string };
+
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  useEffect(() => { fetch("/api/tasks").then((r) => r.json()).then((d) => setTasks(d.tasks || [])).catch(() => {}); }, []);
-  const completed = tasks.filter((t) => t.completed).length;
-  return <AppShell active="Overview" eyebrow="Workspace" title="Good morning, Jamie" description="Here’s what needs your attention today."><div className="stats-grid"><div className="stat-card"><span className="stat-label">Total tasks</span><strong>{tasks.length}</strong><span className="stat-change positive">Across your workspace</span></div><div className="stat-card"><span className="stat-label">Completed</span><strong>{completed}</strong><span className="stat-change positive">{tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate</span></div><div className="stat-card"><span className="stat-label">Open tasks</span><strong>{tasks.length - completed}</strong><span className="stat-change warning">Keep momentum</span></div><div className="stat-card"><span className="stat-label">Focus today</span><strong>—</strong><span className="stat-change"><em>Add an event in Calendar</em></span></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-header"><div><h2>Recent tasks</h2><p>Your latest work</p></div><Link className="text-button" href="/tasks">View all →</Link></div>{tasks.slice(0, 5).map((task) => <div className="activity-item" key={task.id}><span className={`avatar ${task.completed ? "green" : "blue"}`}>{task.completed ? "✓" : "•"}</span><span className={task.completed ? "completed" : ""}>{task.title}</span></div>)}{!tasks.length && <p className="empty-state">No tasks yet. Add your first task to get started.</p>}</section><section className="panel"><div className="panel-header"><div><h2>Plan your day</h2><p>Make time for what matters</p></div><Link className="text-button" href="/calendar">Calendar →</Link></div><p className="empty-state">Connect a calendar or add a local event to see your schedule.</p></section></div></AppShell>;
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+
+  useEffect(() => {
+    fetch("/api/tasks").then((response) => response.json()).then((data) => setTasks(data.tasks || [])).catch(() => setTasks([]));
+    const loadEvents = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem("tasktracker-events") || "[]") as CalendarEvent[];
+        setEvents(stored.filter((event) => event.date).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4));
+      } catch {
+        setEvents([]);
+      }
+    };
+    const eventLoad = window.setTimeout(loadEvents, 0);
+    return () => window.clearTimeout(eventLoad);
+  }, []);
+
+  const completed = tasks.filter((task) => task.completed).length;
+  const openTasks = tasks.filter((task) => !task.completed).slice(0, 5);
+  const today = new Date();
+  const dateLabel = today.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+  return (
+    <AppShell active="Overview" eyebrow="Workspace" title="Dashboard" description={`Good morning, Jamie. Here's your plan for ${dateLabel}.`}>
+      <section className="dashboard-hero">
+        <div><span className="dashboard-kicker">TODAY&apos;S FOCUS</span><h2>Make progress on what matters.</h2><p>Stay on top of your priorities and keep your momentum going.</p></div>
+        <Link href="/tasks"><PrimaryButton>New task</PrimaryButton></Link>
+      </section>
+      <div className="dashboard-stats">
+        <div className="dashboard-stat"><span>Open tasks</span><strong>{tasks.length - completed}</strong><small>Needs attention</small></div>
+        <div className="dashboard-stat"><span>Completed</span><strong>{completed}</strong><small>{tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate</small></div>
+        <div className="dashboard-stat"><span>Upcoming events</span><strong>{events.length}</strong><small>On your calendar</small></div>
+        <div className="dashboard-stat dashboard-stat-accent"><span>Focus streak</span><strong>0 days</strong><small>Start today</small></div>
+      </div>
+      <div className="dashboard-grid dashboard-content-grid">
+        <section className="dashboard-panel">
+          <div className="dashboard-panel-heading"><div><span className="dashboard-kicker">PRIORITIES</span><h2>Upcoming tasks</h2></div><Link className="dashboard-link" href="/tasks">View all →</Link></div>
+          {openTasks.map((task) => <div className="dashboard-task" key={task.id}><span className={`dashboard-task-dot ${task.priority.toLowerCase()}`} /><div><strong>{task.title}</strong><small>{task.priority} priority</small></div><span className="dashboard-task-arrow">→</span></div>)}
+          {!openTasks.length && <p className="dashboard-empty">You&apos;re all caught up. Add a task to keep moving.</p>}
+        </section>
+        <section className="dashboard-panel">
+          <div className="dashboard-panel-heading"><div><span className="dashboard-kicker">SCHEDULE</span><h2>Upcoming events</h2></div><Link className="dashboard-link" href="/calendar">Calendar →</Link></div>
+          {events.map((event) => { const eventDate = new Date(`${event.date}T00:00:00`); return <div className="dashboard-event" key={`${event.provider}-${event.id}`}><div className="dashboard-event-date"><strong>{eventDate.getDate()}</strong><small>{eventDate.toLocaleDateString(undefined, { month: "short" })}</small></div><div><strong>{event.title}</strong><small>{event.provider || "Local"} calendar</small></div></div>; })}
+          {!events.length && <p className="dashboard-empty">No upcoming events. Add one in Calendar.</p>}
+        </section>
+      </div>
+    </AppShell>
+  );
 }
