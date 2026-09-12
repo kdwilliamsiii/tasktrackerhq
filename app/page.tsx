@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell, PrimaryButton } from "./components/app-shell";
 import QuickAddWidget from "../components/QuickAddWidget";
+import TaskProgressWidget from "../components/TaskProgressWidget";
 
-type Task = { id: string; title: string; completed: boolean; priority: string };
+type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string };
 
 export default function DashboardPage() {
@@ -38,6 +39,7 @@ export default function DashboardPage() {
         <Link href="/tasks"><PrimaryButton>New task</PrimaryButton></Link>
       </section>
       <QuickAddWidget />
+      <TaskProgressWidget tasks={tasks} />
       <div className="dashboard-stats">
         <div className="dashboard-stat"><span>Open tasks</span><strong>{tasks.length - completed}</strong><small>Needs attention</small></div>
         <div className="dashboard-stat"><span>Completed</span><strong>{completed}</strong><small>{tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate</small></div>

@@ -21,7 +21,10 @@ export async function PATCH(request: Request) {
   if (!body?.id || typeof body.id !== "string") return NextResponse.json({ error: "A task id is required" }, { status: 400 });
   const input: Record<string, unknown> = {};
   if (typeof body.title === "string" && body.title.trim()) input.title = body.title.trim();
-  if (typeof body.completed === "boolean") input.completed = body.completed;
+  if (typeof body.completed === "boolean") {
+    input.completed = body.completed;
+    input.completedAt = body.completed ? new Date().toISOString() : "";
+  }
   if (body.priority === "Low" || body.priority === "Medium" || body.priority === "High") input.priority = body.priority;
   if (typeof body.category === "string") input.category = body.category.trim().slice(0, 40);
   if (typeof body.dueDate === "string" && (!body.dueDate || /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate))) input.dueDate = body.dueDate;
