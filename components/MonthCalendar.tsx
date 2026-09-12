@@ -4,7 +4,16 @@ import { useMemo, useState } from "react";
 import type { CalendarListEvent } from "./CalendarEventList";
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const eventTones = ["mint", "peach", "blue"] as const;
+
+function toneForProvider(provider?: string) {
+  if (provider === "Google") return "blue";
+  if (provider === "Microsoft") return "peach";
+  return "mint";
+}
+
+function isMovable(event: CalendarListEvent) {
+  return !event.provider || event.provider === "Local";
+}
 
 function toDateKey(date: Date) {
   const pad = (part: number) => String(part).padStart(2, "0");
@@ -20,12 +29,13 @@ function startOfCalendar(year: number, month: number) {
   return start;
 }
 
-export default function MonthCalendar({ events, selectedDate, onSelectDate }: { events: CalendarListEvent[]; selectedDate: string; onSelectDate: (dateKey: string) => void }) {
+export default function MonthCalendar({ events, selectedDate, onSelectDate, onEventClick, onEventDrop }: { events: CalendarListEvent[]; selectedDate: string; onSelectDate: (dateKey: string) => void; onEventClick?: (event: CalendarListEvent) => void; onEventDrop?: (eventId: string, dateKey: string) => void }) {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => {
     const base = selectedDate ? new Date(`${selectedDate}T00:00:00`) : today;
     return Number.isNaN(base.getTime()) ? new Date(today.getFullYear(), today.getMonth(), 1) : new Date(base.getFullYear(), base.getMonth(), 1);
   });
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarListEvent[]>();
@@ -62,6 +72,19 @@ export default function MonthCalendar({ events, selectedDate, onSelectDate }: { 
     onSelectDate(todayKey);
   }
 
+  function handleDragStart(e: React.DragEvent, event: CalendarListEvent) {
+    if (!isMovable(event)) { e.preventDefault(); return; }
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", event.id);
+  }
+
+  function handleDrop(e: React.DragEvent, dateKey: string) {
+    e.preventDefault();
+    setDragOverDate(null);
+    const eventId = e.dataTransfer.getData("text/plain");
+    if (eventId) onEventDrop?.(eventId, dateKey);
+  }
+
   return (
     <section className="panel calendar-shell">
       <div className="calendar-toolbar">
@@ -84,23 +107,39 @@ export default function MonthCalendar({ events, selectedDate, onSelectDate }: { 
             const isSelected = key === selectedDate;
             const dayEvents = eventsByDate.get(key) || [];
             return (
-              <button
-                type="button"
+              <div
                 key={key}
-                className={`calendar-cell ${inMonth ? "" : "muted-day"} ${isToday ? "current-day" : ""} ${isSelected ? "selected-day" : ""}`}
+                role="button"
+                tabIndex={0}
+                className={`calendar-cell ${inMonth ? "" : "muted-day"} ${isToday ? "current-day" : ""} ${isSelected ? "selected-day" : ""} ${dragOverDate === key ? "drop-target" : ""}`}
                 onClick={() => onSelectDate(key)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelectDate(key); } }}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverDate !== key) setDragOverDate(key); }}
+                onDragLeave={() => setDragOverDate((current) => (current === key ? null : current))}
+                onDrop={(e) => handleDrop(e, key)}
                 aria-label={`${day.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}${dayEvents.length ? `, ${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"}` : ""}`}
               >
                 <span className="date-number">{day.getDate()}</span>
-                {dayEvents.slice(0, 3).map((event, index) => (
-                  <span className={`calendar-event ${eventTones[index % eventTones.length]}`} key={event.id} title={event.title}>{event.title}</span>
+                {dayEvents.slice(0, 3).map((event) => (
+                  <button
+                    type="button"
+                    className={`calendar-event ${toneForProvider(event.provider)}`}
+                    key={event.id}
+                    title={event.title}
+                    draggable={isMovable(event)}
+                    onDragStart={(e) => handleDragStart(e, event)}
+                    onClick={(e) => { e.stopPropagation(); onEventClick?.(event); }}
+                  >
+                    {event.title}
+                  </button>
                 ))}
                 {dayEvents.length > 3 && <span className="calendar-event-more">+{dayEvents.length - 3} more</span>}
-              </button>
+              </div>
             );
           })}
         </div>
       </div>
+      <p className="calendar-legend"><span className="calendar-legend-dot mint" /> Local <span className="calendar-legend-dot blue" /> Google <span className="calendar-legend-dot peach" /> Microsoft</p>
     </section>
   );
 }

@@ -19,8 +19,9 @@ function localDateTimeValue(value?: string) {
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [draft, setDraft] = useState<EventDraft>(emptyDraft); const [editingId, setEditingId] = useState<string | null>(null); const [message, setMessage] = useState(""); const [syncing, setSyncing] = useState("");
+  const [draft, setDraft] = useState<EventDraft>(emptyDraft); const [editingId, setEditingId] = useState<string | null>(null); const [message, setMessage] = useState(""); const [syncing, setSyncing] = useState(""); const [syncMonthsBack, setSyncMonthsBack] = useState("3");
   const integrationsRef = useRef<HTMLElement>(null);
+  const formRef = useRef<HTMLElement>(null);
   const { notify } = useNotifications();
   useEffect(() => {
     const load = window.setTimeout(() => {
@@ -71,11 +72,35 @@ export default function CalendarPage() {
   function selectDate(dateKey: string) {
     setDraft((current) => ({ ...current, date: dateKey }));
   }
+  function openEventFromCalendar(event: EventItem) {
+    if (event.provider && event.provider !== "Local") {
+      notify(`${event.provider} events are read-only here. Edit them in ${event.provider}.`, "info");
+      return;
+    }
+    editEvent(event);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function moveEvent(eventId: string, dateKey: string) {
+    const target = events.find((event) => event.id === eventId);
+    if (!target || (target.provider && target.provider !== "Local")) return;
+    if (target.date.slice(0, 10) === dateKey) return;
+    let time = target.time;
+    if (time) {
+      const [year, month, day] = dateKey.split("-").map(Number);
+      const updated = new Date(time);
+      updated.setFullYear(year, month - 1, day);
+      time = updated.toISOString();
+    }
+    const next = events.map((event) => event.id === eventId ? { ...event, date: dateKey, time } : event);
+    setEvents(next);
+    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    notify(`"${target.title}" moved to ${dateKey}.`, "success");
+  }
   async function sync(provider: string) {
     setSyncing(provider);
     setMessage("");
     try {
-      const response = await fetch("/api/calendar-sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider }) });
+      const response = await fetch("/api/calendar-sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, monthsBack: Number(syncMonthsBack) }) });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.synced) {
         setMessage(result?.reason || result?.error || `Unable to sync ${provider} calendar.`);
@@ -96,7 +121,7 @@ export default function CalendarPage() {
   }
   return <AppShell active="Calendar" eyebrow="Workspace" title="Calendar" description="See what's happening and keep your commitments in view." action={<PrimaryButton onClick={focusIntegrations}>Connect calendar</PrimaryButton>}>
     <TTBotHint command="show today's schedule">TT Bot can help you spot meetings starting soon and keep your schedule in view.</TTBotHint>
-    <MonthCalendar events={events} selectedDate={draft.date} onSelectDate={selectDate} />
-    <div className="dashboard-grid"><section className="panel"><div className="panel-header"><div><h2>{editingId ? "Edit event" : "Add an event"}</h2><p>{editingId ? "Update your local event details." : "Add a local event or connect a calendar below."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div><form className="event-form" onSubmit={saveEvent}><input required value={draft.title} onChange={(e) => updateDraft("title", e.target.value)} placeholder="Event title" aria-label="Event title" /><input required type="date" value={draft.date} onChange={(e) => updateDraft("date", e.target.value)} aria-label="Event date" /><input type="time" value={draft.time} onChange={(e) => updateDraft("time", e.target.value)} aria-label="Event time" /><select value={draft.reminderMinutes} onChange={(e) => updateDraft("reminderMinutes", e.target.value)} aria-label="Reminder"><option value="0">No reminder</option><option value="5">5 min before</option><option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option></select><button className="primary-button" type="submit">{editingId ? "Save changes" : "Add event"}</button></form><CalendarEventList events={[...events].sort((a,b) => `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`))} onEdit={editEvent} onDelete={deleteEvent} />{!events.length && <p className="empty-state">No events yet.</p>}</section><section className="panel" ref={integrationsRef} tabIndex={-1}><h2>Calendar integrations</h2><p className="panel-subtitle">Connect a provider to sync events.</p><div className="integration-row"><span>Google Calendar</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>{syncing === "google" ? "Syncing..." : "Sync"}</button></div><div className="integration-row"><span>Microsoft Outlook</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>{syncing === "microsoft" ? "Syncing..." : "Sync"}</button></div>{message && <p className="form-success" role="status">{message}</p>}</section></div>
+    <MonthCalendar events={events} selectedDate={draft.date} onSelectDate={selectDate} onEventClick={openEventFromCalendar} onEventDrop={moveEvent} />
+    <div className="dashboard-grid"><section className="panel" ref={formRef}><div className="panel-header"><div><h2>{editingId ? "Edit event" : "Add an event"}</h2><p>{editingId ? "Update your local event details." : "Add a local event or connect a calendar below."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div><form className="event-form" onSubmit={saveEvent}><input required value={draft.title} onChange={(e) => updateDraft("title", e.target.value)} placeholder="Event title" aria-label="Event title" /><input required type="date" value={draft.date} onChange={(e) => updateDraft("date", e.target.value)} aria-label="Event date" /><input type="time" value={draft.time} onChange={(e) => updateDraft("time", e.target.value)} aria-label="Event time" /><select value={draft.reminderMinutes} onChange={(e) => updateDraft("reminderMinutes", e.target.value)} aria-label="Reminder"><option value="0">No reminder</option><option value="5">5 min before</option><option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option></select><button className="primary-button" type="submit">{editingId ? "Save changes" : "Add event"}</button></form><CalendarEventList events={[...events].sort((a,b) => `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`))} onEdit={editEvent} onDelete={deleteEvent} />{!events.length && <p className="empty-state">No events yet.</p>}</section><section className="panel" ref={integrationsRef} tabIndex={-1}><h2>Calendar integrations</h2><p className="panel-subtitle">Connect a provider to sync events.</p><label className="sync-range-label">Sync events from the last<select value={syncMonthsBack} onChange={(e) => setSyncMonthsBack(e.target.value)} aria-label="Sync range"><option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">1 year</option></select></label><div className="integration-row"><span>Google Calendar</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>{syncing === "google" ? "Syncing..." : "Sync"}</button></div><div className="integration-row"><span>Microsoft Outlook</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>{syncing === "microsoft" ? "Syncing..." : "Sync"}</button></div>{message && <p className="form-success" role="status">{message}</p>}</section></div>
   </AppShell>;
 }
