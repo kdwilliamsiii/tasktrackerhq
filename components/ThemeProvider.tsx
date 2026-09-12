@@ -36,6 +36,11 @@ export const themePresets: ThemePreset[] = [
   { id: "lavender", name: "Lavender", colors: { background: "#f8f7fc", foreground: "#28243a", navy: "#40345f", teal: "#9b8ce0", orange: "#e39a72", line: "#e6e0f2" } },
   { id: "forest", name: "Forest", colors: { background: "#f4f8f5", foreground: "#17231c", navy: "#193c2a", teal: "#4caf82", orange: "#d88b52", line: "#dce9df" } },
   { id: "sunset", name: "Sunset", colors: { background: "#fff8f4", foreground: "#30201c", navy: "#5a2f2a", teal: "#e27c68", orange: "#e5a23c", line: "#f0ddd5" } },
+  { id: "candy", name: "Candy Pop", colors: { background: "#fff5fb", foreground: "#3b203d", navy: "#7b2f72", teal: "#f472b6", orange: "#fbbf24", line: "#f4cfe5" } },
+  { id: "neon", name: "Neon Arcade", colors: { background: "#101322", foreground: "#f2f4ff", navy: "#25115c", teal: "#22d3ee", orange: "#f43f5e", line: "#35345c" } },
+  { id: "tropical", name: "Tropical", colors: { background: "#effcf8", foreground: "#123b3b", navy: "#075e54", teal: "#2dd4bf", orange: "#fb923c", line: "#c5eee5" } },
+  { id: "cosmic", name: "Cosmic", colors: { background: "#f5f3ff", foreground: "#27144d", navy: "#4c1d95", teal: "#8b5cf6", orange: "#ec4899", line: "#ddd2fa" } },
+  { id: "lemonade", name: "Lemonade", colors: { background: "#fffdeb", foreground: "#3f3510", navy: "#766000", teal: "#84cc16", orange: "#f59e0b", line: "#f2e7a8" } },
 ];
 
 type ThemeContextValue = {
