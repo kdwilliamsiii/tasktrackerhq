@@ -94,37 +94,46 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [selectedPreset, setSelectedPreset] = useState(defaultTheme.id);
   const [font, setFontChoice] = useState(fontChoices[0]);
   const [options, setOptions] = useState(defaultOptions);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    if (!hydrated) return;
     applyColors(colors);
-  }, [colors]);
+  }, [colors, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     applyFont(font);
-  }, [font]);
+  }, [font, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     applyOptions(options);
-  }, [options]);
+  }, [options, hydrated]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tasktracker-theme");
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string; font?: string; options?: ThemeOptions };
-      const savedColors = parsed.colors;
-      const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
-      if (savedColors) {
-        requestAnimationFrame(() => {
-          setColors(normalizeColors(savedColors));
-          setSelectedPreset(parsed.preset || "custom");
-          if (savedFont) setFontChoice(savedFont);
-          if (parsed.options) setOptions({ ...defaultOptions, ...parsed.options });
-        });
+    const loadTheme = () => {
+      const saved = localStorage.getItem("tasktracker-theme");
+      if (!saved) {
+        setHydrated(true);
+        return;
       }
-    } catch {
-      localStorage.removeItem("tasktracker-theme");
-    }
+      try {
+        const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string; font?: string; options?: ThemeOptions };
+        const savedColors = parsed.colors ? normalizeColors(parsed.colors) : defaultTheme.colors;
+        const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
+        setColors(savedColors);
+        setSelectedPreset(parsed.preset || "custom");
+        setFontChoice(savedFont || fontChoices[0]);
+        setOptions({ ...defaultOptions, ...(parsed.options || {}) });
+      } catch {
+        localStorage.removeItem("tasktracker-theme");
+      } finally {
+        setHydrated(true);
+      }
+    };
+    const themeLoad = window.setTimeout(loadTheme, 0);
+    return () => window.clearTimeout(themeLoad);
   }, []);
 
   const save = useCallback((next: ThemeColors, preset: string, nextFont = font, nextOptions = options) => {
