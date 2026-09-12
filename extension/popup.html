@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskTrackerHQ</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <div class="logo">TT</div>
+      <div>
+        <strong>TaskTrackerHQ</strong>
+        <small>Quick Capture</small>
+      </div>
+    </div>
+    <a href="https://www.tasktrackerhq.app" target="_blank" class="open-app-btn" id="openAppBtn">Open App ?</a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-capture">?? Capture</button>
+    <button class="tab-btn" data-tab="tab-tasks">?? Tasks <span class="badge" id="taskBadge">0</span></button>
+    <button class="tab-btn" data-tab="tab-bot">? TT Bot</button>
+    <button class="tab-btn" data-tab="tab-settings">? Settings</button>
+  </div>
+
+  <div class="tab-content active" id="tab-capture">
+    <form id="captureForm">
+      <div class="form-group">
+        <div class="form-label-row">
+          <label for="taskTitle">Task Title</label>
+          <button type="button" class="btn-text" id="fillPageBtn">? Use Page Title &amp; Link</button>
+        </div>
+        <textarea id="taskTitle" placeholder="e.g. Read article on Next.js 16" required rows="2"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="taskPriority">Priority</label>
+          <select id="taskPriority">
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="taskCategory">Category</label>
+          <input type="text" id="taskCategory" value="Web Capture" placeholder="Category">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="taskDueDate">Due Date</label>
+        <input type="date" id="taskDueDate">
+      </div>
+
+      <button type="submit" class="btn-primary" id="saveTaskBtn">Save Task to TaskTrackerHQ</button>
+      <div class="status-msg" id="captureStatus"></div>
+    </form>
+  </div>
+
+  <div class="tab-content" id="tab-tasks">
+    <div class="tasks-toolbar">
+      <span>Open Tasks</span>
+      <button class="btn-icon" id="refreshTasksBtn" title="Refresh Tasks">??</button>
+    </div>
+    <div class="task-list" id="taskList">
+      <div class="empty-state">Loading tasks...</div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-bot">
+    <div class="bot-messages" id="botMessages">
+      <div class="bot-msg bot">
+        <p>Hi! I?m TT Bot. Ask me to plan your day, summarize tasks, or help with focus.</p>
+      </div>
+    </div>
+    <div class="bot-quick">
+      <button class="quick-chip" data-query="Plan my day">Plan Today</button>
+      <button class="quick-chip" data-query="Show open tasks">My Tasks</button>
+      <button class="quick-chip" data-query="Focus mode">Focus</button>
+    </div>
+    <form class="bot-input-form" id="botForm">
+      <input type="text" id="botInput" placeholder="Ask TT Bot..." required>
+      <button type="submit" id="botSendBtn">?</button>
+    </form>
+  </div>
+
+  <div class="tab-content" id="tab-settings">
+    <div class="form-group">
+      <label for="serverUrl">TaskTrackerHQ Server URL</label>
+      <input type="url" id="serverUrl" value="https://www.tasktrackerhq.app">
+      <small class="help-text">Default is https://www.tasktrackerhq.app. Use http://localhost:3000 for local dev.</small>
+    </div>
+    <button class="btn-secondary" id="saveSettingsBtn">Save Settings</button>
+    <div class="status-msg" id="settingsStatus"></div>
+
+    <div class="info-card">
+      <strong>Chrome &amp; Edge Extension v1.0</strong>
+      <p>Supports right-click web capture, background task sync, and instant TT Bot assistant.</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

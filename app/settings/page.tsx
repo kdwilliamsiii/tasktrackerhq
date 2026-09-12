@@ -29,6 +29,33 @@ export default function SettingsPage() {
         <div className="integration-row"><div><strong>Outlook Calendar</strong><small>{connectedProvider === "azure-ad" ? "Connected and ready to sync" : "Microsoft account and calendar access"}</small></div>{connectedProvider === "azure-ad" ? <button className="filter-button integration-connected" onClick={() => void disconnect()}>Disconnect</button> : <button className="filter-button" onClick={() => void connect("azure-ad")}>Connect</button>}</div>
         {session && <p className="integration-note">Disconnecting removes your provider session and locally cached calendar events.</p>}
       </section>
+
+      <section className="panel extension-panel">
+        <div className="settings-heading">
+          <div>
+            <h2>Browser extension (Chrome &amp; Edge)</h2>
+            <p>Capture tasks from any webpage, right-click text to save, and chat with TT Bot.</p>
+          </div>
+        </div>
+        <div className="extension-download-card">
+          <div className="extension-download-info">
+            <strong>TaskTrackerHQ Extension v1.0</strong>
+            <small>Manifest V3 ? Works with Chrome, Edge, Brave, and Opera</small>
+          </div>
+          <a className="primary-button extension-download-btn" href="/tasktrackerhq-extension.zip" download>
+            <span>?</span> Download Extension (.zip)
+          </a>
+        </div>
+        <div className="extension-instructions">
+          <strong>Installation Steps:</strong>
+          <ol>
+            <li>Download and unzip <code>tasktrackerhq-extension.zip</code>.</li>
+            <li>Open Chrome or Edge and go to <code>chrome://extensions</code> (or <code>edge://extensions</code>).</li>
+            <li>Enable <strong>Developer mode</strong> (toggle in top right).</li>
+            <li>Click <strong>Load unpacked</strong> and select the unzipped <code>extension</code> folder.</li>
+          </ol>
+        </div>
+      </section>
       <ThemeCustomizer />
     </div>
   </AppShell>;

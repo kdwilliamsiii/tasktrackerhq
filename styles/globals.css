@@ -192,3 +192,62 @@ body {
 .sign-in-actions {
   margin-top: 2px;
 }
+
+/* Browser Extension Settings Section */
+.extension-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.extension-download-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--teal) 35%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--teal) 6%, var(--surface));
+}
+.extension-download-info strong {
+  display: block;
+  color: var(--navy);
+  font-size: 13px;
+}
+.extension-download-info small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.extension-download-btn {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.extension-instructions {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.extension-instructions strong {
+  display: block;
+  color: var(--navy);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.extension-instructions ol {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--foreground);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.extension-instructions code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--background);
+  color: var(--teal);
+  font-family: monospace;
+  font-size: 10px;
+}
