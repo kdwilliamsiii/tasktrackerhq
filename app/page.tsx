@@ -7,7 +7,7 @@ import QuickAddWidget from "../components/QuickAddWidget";
 import TaskProgressWidget from "../components/TaskProgressWidget";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
-type CalendarEvent = { id: string; title: string; date: string; provider?: string };
+type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
 
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -18,7 +18,8 @@ export default function DashboardPage() {
     const loadEvents = () => {
       try {
         const stored = JSON.parse(localStorage.getItem("tasktracker-events") || "[]") as CalendarEvent[];
-        setEvents(stored.filter((event) => event.date).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4));
+        const now = Date.now();
+        setEvents(stored.filter((event) => event.date && new Date(event.date).getTime() >= now - 86400000).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4));
       } catch {
         setEvents([]);
       }
@@ -54,7 +55,7 @@ export default function DashboardPage() {
         </section>
         <section className="dashboard-panel">
           <div className="dashboard-panel-heading"><div><span className="dashboard-kicker">SCHEDULE</span><h2>Upcoming events</h2></div><Link className="dashboard-link" href="/calendar">Calendar →</Link></div>
-          {events.map((event) => { const eventDate = new Date(`${event.date}T00:00:00`); return <div className="dashboard-event" key={`${event.provider}-${event.id}`}><div className="dashboard-event-date"><strong>{eventDate.getDate()}</strong><small>{eventDate.toLocaleDateString(undefined, { month: "short" })}</small></div><div><strong>{event.title}</strong><small>{event.provider || "Local"} calendar</small></div></div>; })}
+          {events.map((event) => { const eventDate = new Date(event.date.includes("T") ? event.date : `${event.date}T00:00:00`); const eventTime = event.time ? new Date(event.time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "All day"; return <div className="dashboard-event" key={`${event.provider}-${event.id}`}><div className="dashboard-event-date"><strong>{eventDate.getDate()}</strong><small>{eventDate.toLocaleDateString(undefined, { month: "short" })}</small></div><div><strong>{event.title}</strong><small>{eventTime} · {event.provider || "Local"}{event.location ? ` · ${event.location}` : ""}</small></div></div>; })}
           {!events.length && <p className="dashboard-empty">No upcoming events. Add one in Calendar.</p>}
         </section>
       </div>

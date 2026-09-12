@@ -45,6 +45,7 @@ body {
 .dashboard-task > div, .dashboard-event > div:last-child { flex: 1; }
 .dashboard-task strong, .dashboard-event strong { display: block; color: var(--foreground); font-size: 12px; }
 .dashboard-task small, .dashboard-event small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+.dashboard-event small { line-height: 1.4; }
 .dashboard-task-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 9px var(--teal); }
 .dashboard-task-dot.high { background: var(--orange); box-shadow: 0 0 9px var(--orange); }
 .dashboard-task-dot.low { background: #8b9cf6; box-shadow: 0 0 9px #8b9cf6; }
