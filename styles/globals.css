@@ -16,6 +16,10 @@ body {
 }
 
 * { box-sizing: border-box; }
+.legal-page { max-width: 760px; margin: 0 auto; padding: 2rem; color: var(--foreground); }
+.legal-page h1 { color: var(--navy); margin-bottom: .5rem; }
+.legal-page h2 { color: var(--navy); margin-top: 2rem; font-size: 1.1rem; }
+.legal-page p { color: var(--ink-muted); line-height: 1.7; }
 
 .app-shell > main { min-height: 100vh; padding: 2rem; }
 .app-shell > nav { display: flex; gap: 1rem; padding: 1rem 2rem; background: #17283d; }

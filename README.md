@@ -1,4 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TaskTrackerHQ
+
+## Microsoft Outlook setup
+
+Microsoft sign-in is optional. Register an app in the Microsoft Entra admin center with this redirect URI:
+
+```text
+http://localhost:3000/api/auth/callback/azure-ad
+```
+
+Use `https://your-production-domain/api/auth/callback/azure-ad` for production. Configure delegated Microsoft Graph permission `Calendars.Read`, grant consent, and set `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, and `MICROSOFT_TENANT_ID` (usually `common`). Privacy and Terms pages are available at `/privacy` and `/terms`.
 
 ## Getting Started
 
