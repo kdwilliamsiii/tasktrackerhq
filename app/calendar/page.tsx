@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { AppShell, PrimaryButton } from "../components/app-shell";
 import CalendarEventList, { type CalendarListEvent } from "../../components/CalendarEventList";
 import { useNotifications } from "../../components/NotificationProvider";
+import TTBotHint from "../../components/TTBotHint";
 type EventItem = CalendarListEvent;
 export default function CalendarPage() {
   const [events, setEvents] = useState<EventItem[]>(() => {
@@ -47,6 +48,7 @@ export default function CalendarPage() {
     }
   }
   return <AppShell active="Calendar" eyebrow="Workspace" title="Calendar" description="See what's happening and keep your commitments in view." action={<PrimaryButton>Connect calendar</PrimaryButton>}>
+    <TTBotHint command="show today's schedule">TT Bot can help you spot meetings starting soon and keep your schedule in view.</TTBotHint>
     <div className="dashboard-grid"><section className="panel"><div className="panel-header"><div><h2>Events</h2><p>Local and connected calendars</p></div></div><form className="event-form" onSubmit={add}><input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" aria-label="Event title" /><input required type="date" value={date} onChange={(e) => setDate(e.target.value)} /><button className="primary-button" type="submit">Add event</button></form><CalendarEventList events={[...events].sort((a,b) => a.date.localeCompare(b.date))} />{!events.length && <p className="empty-state">No events yet.</p>}</section><section className="panel"><h2>Calendar integrations</h2><p className="panel-subtitle">Connect a provider to sync events.</p><div className="integration-row"><span>Google Calendar</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>{syncing === "google" ? "Syncing..." : "Sync"}</button></div><div className="integration-row"><span>Microsoft Outlook</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>{syncing === "microsoft" ? "Syncing..." : "Sync"}</button></div>{message && <p className="form-success" role="status">{message}</p>}</section></div>
   </AppShell>;
 }

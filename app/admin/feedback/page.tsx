@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
 import AdminReviewWidget, { type AdminSuggestion } from "../../../components/AdminReviewWidget";
 import { useNotifications } from "../../../components/NotificationProvider";
+import TTBotHint from "../../../components/TTBotHint";
 
 export default function FeedbackReviewPage() {
   const { data: session, status: sessionStatus } = useSession();
@@ -40,5 +41,5 @@ export default function FeedbackReviewPage() {
     else setError("Unable to delete suggestion.");
   }
 
-  return <main className="admin-feedback"><div className="feedback-heading"><div><p className="eyebrow">ADMINISTRATION</p><h1>Suggestion Review</h1><p>Review and moderate feature requests submitted by your users.</p></div><strong>{suggestions.length} suggestions</strong></div>{error && <p className="form-error" role="alert">{error}</p>}<AdminReviewWidget suggestions={suggestions} loading={loading} onStatusChange={(id, status) => void update(id, status)} onDelete={(id) => void remove(id)} /></main>;
+  return <main className="admin-feedback"><div className="feedback-heading"><div><p className="eyebrow">ADMINISTRATION</p><h1>Suggestion Review</h1><p>Review and moderate feature requests submitted by your users.</p></div><strong>{suggestions.length} suggestions</strong></div>{error && <p className="form-error" role="alert">{error}</p>}<TTBotHint command="show new suggestions">TT Bot can summarize new feedback and identify the highest-priority suggestion.</TTBotHint><AdminReviewWidget suggestions={suggestions} loading={loading} onStatusChange={(id, status) => void update(id, status)} onDelete={(id) => void remove(id)} /></main>;
 }

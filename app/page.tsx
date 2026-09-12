@@ -7,6 +7,7 @@ import QuickAddWidget from "../components/QuickAddWidget";
 import TaskProgressWidget from "../components/TaskProgressWidget";
 import DailyOverviewWidget from "../components/DailyOverviewWidget";
 import DashboardCard from "../components/DashboardCard";
+import TTBotHint from "../components/TTBotHint";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
@@ -42,6 +43,7 @@ export default function DashboardPage() {
         <Link href="/tasks"><PrimaryButton>New task</PrimaryButton></Link>
       </section>
       <DailyOverviewWidget tasks={tasks} events={events} />
+      <TTBotHint command="show today's schedule">Need a quick read on your day? TT Bot can summarize your tasks and calendar.</TTBotHint>
       <QuickAddWidget />
       <TaskProgressWidget tasks={tasks} />
       <div className="dashboard-stats">

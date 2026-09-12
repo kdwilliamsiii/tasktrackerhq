@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
+import TTBotHint from "../../components/TTBotHint";
 
 type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
@@ -120,6 +121,7 @@ export default function TasksPage() {
         </form>
         {error && <p className="form-error" role="alert">{error}</p>}
       </section>
+      <TTBotHint command="add a task: Review project notes">Tell TT Bot what you need to do and it can add a medium-priority task for you.</TTBotHint>
       <section className="panel task-list-panel">
         <div className="panel-header task-list-heading"><div><h2>Your tasks</h2><p>{tasks.filter((task) => !task.completed).length} open tasks</p></div><div className="filter-tabs">{["All", "Open", "Completed"].map((name) => <button className={filter === name ? "selected" : ""} key={name} onClick={() => setFilter(name)}>{name}<b>{name === "All" ? tasks.length : name === "Open" ? tasks.filter((task) => !task.completed).length : tasks.filter((task) => task.completed).length}</b></button>)}</div></div>
         {loading ? <p className="empty-state">Loading tasks...</p> : shown.length ? <div className="task-list">{shown.map((task) => <article className={`task-row-card ${task.completed ? "is-complete" : ""}`} key={task.id}>
