@@ -3,6 +3,7 @@ import Link from "next/link";
 const navigation = [
   { href: "/", label: "Overview", icon: "◈" },
   { href: "/tasks", label: "Tasks", icon: "□" },
+  { href: "/focus", label: "Focus", icon: "◷" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
 ];
 
