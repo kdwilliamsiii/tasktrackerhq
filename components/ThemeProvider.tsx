@@ -58,6 +58,7 @@ function applyColors(colors: ThemeColors) {
 
 function applyFont(font: FontChoice) {
   document.documentElement.style.setProperty("--font-app", font.family);
+  document.body.style.fontFamily = font.family;
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
