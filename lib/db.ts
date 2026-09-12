@@ -22,6 +22,8 @@ export type Task = {
   title: string;
   completed: boolean;
   priority: "Low" | "Medium" | "High";
+  category?: string;
+  dueDate?: string;
 };
 
 const tasks = () => db.collection<Task>("tasks");

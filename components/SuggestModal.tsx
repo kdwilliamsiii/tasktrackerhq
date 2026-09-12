@@ -29,6 +29,8 @@ export default function SuggestModal({ open, onClose }: { open: boolean; onClose
 
       setFeatureName("");
       setDescription("");
+      setCategory("Tasks");
+      setPriority("Medium");
       onClose();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Unable to submit your suggestion.");
@@ -46,10 +48,10 @@ export default function SuggestModal({ open, onClose }: { open: boolean; onClose
         <h2 id="suggestion-title">Suggest a Feature</h2>
         <p>Help shape the future of TaskTrackerHQ.</p>
         <form onSubmit={submit}>
-          <input required value={featureName} onChange={(event) => setFeatureName(event.target.value)} placeholder="What should we add?" />
-          <textarea required value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Tell us more about your idea..." />
-          <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Category"><option>Tasks</option><option>Calendar</option><option>Focus Mode</option><option>AI Features</option><option>Study Tools</option><option>Team Collaboration</option><option>UI/Design</option><option>Other</option></select>
-          <select value={priority} onChange={(event) => setPriority(event.target.value)} aria-label="Priority"><option>Low</option><option>Medium</option><option>High</option></select>
+          <label>Feature name<input required maxLength={100} value={featureName} onChange={(event) => setFeatureName(event.target.value)} placeholder="What should we add?" /></label>
+          <label>Description<textarea required maxLength={1000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Tell us more about your idea..." /></label>
+          <label>Category<select value={category} onChange={(event) => setCategory(event.target.value)}><option>Tasks</option><option>Calendar</option><option>Focus Mode</option><option>AI Features</option><option>Study Tools</option><option>Team Collaboration</option><option>UI/Design</option><option>Other</option></select></label>
+          <label>Priority<select value={priority} onChange={(event) => setPriority(event.target.value)}><option>Low</option><option>Medium</option><option>High</option></select></label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button type="submit" disabled={submitting}>{submitting ? "Submitting..." : "Submit Suggestion"}</button>
         </form>

@@ -11,7 +11,7 @@ async function authorize() {
 export async function PATCH(request: Request) {
   if (!await authorize()) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const body = await request.json().catch(() => null);
-  if (typeof body?.id !== "string" || !["new", "planned", "in-progress", "completed", "dismissed"].includes(body.status)) return NextResponse.json({ error: "Valid id and status are required" }, { status: 400 });
+  if (typeof body?.id !== "string" || !["new", "reviewing", "approved", "rejected"].includes(body.status)) return NextResponse.json({ error: "Valid id and status are required" }, { status: 400 });
   const result = await db.collection("suggestions").updateOne({ id: body.id }, { $set: { status: body.status, updatedAt: new Date().toISOString() } });
   return result.matchedCount ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Suggestion not found" }, { status: 404 });
 }

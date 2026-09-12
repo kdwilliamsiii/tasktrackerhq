@@ -11,7 +11,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A task title is required" }, { status: 400 });
   }
   const priority = body.priority === "High" || body.priority === "Low" ? body.priority : "Medium";
-  return NextResponse.json({ task: await addTask({ title: body.title.trim(), completed: false, priority }) }, { status: 201 });
+  const category = typeof body.category === "string" ? body.category.trim().slice(0, 40) : "";
+  const dueDate = typeof body.dueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate) ? body.dueDate : "";
+  return NextResponse.json({ task: await addTask({ title: body.title.trim(), completed: false, priority, category, dueDate }) }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -21,6 +23,8 @@ export async function PATCH(request: Request) {
   if (typeof body.title === "string" && body.title.trim()) input.title = body.title.trim();
   if (typeof body.completed === "boolean") input.completed = body.completed;
   if (body.priority === "Low" || body.priority === "Medium" || body.priority === "High") input.priority = body.priority;
+  if (typeof body.category === "string") input.category = body.category.trim().slice(0, 40);
+  if (typeof body.dueDate === "string" && (!body.dueDate || /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate))) input.dueDate = body.dueDate;
   if (!Object.keys(input).length) return NextResponse.json({ error: "No valid task changes" }, { status: 400 });
   const task = await updateTask(body.id, input);
   return task ? NextResponse.json({ task }) : NextResponse.json({ error: "Task not found" }, { status: 404 });

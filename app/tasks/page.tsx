@@ -1,24 +1,125 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppShell, PrimaryButton, StatusPill } from "../components/app-shell";
+import { AppShell, StatusPill } from "../components/app-shell";
 
-type Task = { id: string; title: string; completed: boolean; priority: "Low" | "Medium" | "High" };
+type Priority = "Low" | "Medium" | "High";
+type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
+type TaskDraft = { title: string; priority: Priority; category: string; dueDate: string };
+
+const emptyDraft: TaskDraft = { title: "", priority: "Medium", category: "General", dueDate: "" };
+
+function formatDueDate(date?: string) {
+  if (!date) return "No due date";
+  return new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState<Task["priority"]>("Medium");
+  const [draft, setDraft] = useState<TaskDraft>(emptyDraft);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
-  const load = () => fetch("/api/tasks").then((r) => r.json()).then((d) => setTasks(d.tasks || [])).catch(() => setTasks([])).finally(() => setLoading(false));
-  useEffect(() => { load(); }, []);
-  async function add(e: React.FormEvent) { e.preventDefault(); if (!title.trim()) return; const r = await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, priority }) }); if (r.ok) { setTitle(""); load(); } }
-  async function update(task: Task, changes: Partial<Task>) { await fetch("/api/tasks", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: task.id, ...changes }) }); load(); }
-  async function remove(id: string) { await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" }); setTasks((old) => old.filter((t) => t.id !== id)); }
-  const shown = tasks.filter((t) => filter === "All" || (filter === "Open" ? !t.completed : t.completed));
-  return <AppShell active="Tasks" eyebrow="Workspace" title="Tasks" description="Keep your team aligned and moving forward." action={<PrimaryButton>New task</PrimaryButton>}>
-    <div className="panel task-toolbar"><form onSubmit={add} className="task-add"><input aria-label="Task title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task..." /><select value={priority} onChange={(e) => setPriority(e.target.value as Task["priority"])}><option>Low</option><option>Medium</option><option>High</option></select><button className="primary-button" type="submit">Add task</button></form><div className="filter-tabs">{["All", "Open", "Completed"].map((name) => <button className={filter === name ? "selected" : ""} key={name} onClick={() => setFilter(name)}>{name}</button>)}</div></div>
-    <section className="panel"><div className="panel-header"><div><h2>Your tasks</h2><p>{tasks.filter((t) => !t.completed).length} open tasks</p></div></div>{loading ? <p>Loading tasks…</p> : shown.length ? <ul className="task-list">{shown.map((task) => <li key={task.id}><button className="task-check" onClick={() => update(task, { completed: !task.completed })} aria-label={`Mark ${task.title} ${task.completed ? "open" : "complete"}`}>{task.completed ? "✓" : "○"}</button><span className={task.completed ? "completed" : ""}>{task.title}</span><StatusPill status={task.priority} /><button className="text-button task-delete" onClick={() => remove(task.id)}>Delete</button></li>)}</ul> : <p className="empty-state">No tasks here yet.</p>}</section>
-  </AppShell>;
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/tasks");
+      if (!response.ok) throw new Error("Unable to load tasks");
+      const data = await response.json();
+      setTasks(data.tasks || []);
+    } catch {
+      setError("Tasks could not be loaded. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const taskLoad = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(taskLoad);
+  }, []);
+
+  function updateDraft(field: keyof TaskDraft, value: string) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function startEdit(task: Task) {
+    setEditingId(task.id);
+    setDraft({ title: task.title, priority: task.priority, category: task.category || "General", dueDate: task.dueDate || "" });
+    setError("");
+  }
+
+  function resetDraft() {
+    setEditingId(null);
+    setDraft(emptyDraft);
+  }
+
+  async function saveTask(event: React.FormEvent) {
+    event.preventDefault();
+    if (!draft.title.trim()) {
+      setError("Enter a task title before saving.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/tasks", {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingId ? { id: editingId, ...draft } : draft),
+      });
+      if (!response.ok) throw new Error("Unable to save task");
+      resetDraft();
+      await load();
+    } catch {
+      setError("The task could not be saved. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function update(task: Task, changes: Partial<Task>) {
+    const response = await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: task.id, ...changes }),
+    });
+    if (response.ok) await load();
+    else setError("The task could not be updated.");
+  }
+
+  async function remove(id: string) {
+    const response = await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (response.ok) setTasks((old) => old.filter((task) => task.id !== id));
+    else setError("The task could not be deleted.");
+  }
+
+  const shown = tasks.filter((task) => filter === "All" || (filter === "Open" ? !task.completed : task.completed));
+
+  return (
+    <AppShell active="Tasks" eyebrow="Workspace" title="Task Manager" description="Plan, prioritize, and complete your work.">
+      <section className="panel task-manager-form">
+        <div className="panel-header"><div><h2>{editingId ? "Edit task" : "Add a task"}</h2><p>{editingId ? "Update the details and save your changes." : "Capture the next thing you need to accomplish."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div>
+        <form onSubmit={saveTask} className="task-form-grid">
+          <label className="task-field task-field-wide">Task title<input value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} placeholder="What needs to get done?" /></label>
+          <label className="task-field">Priority<select value={draft.priority} onChange={(event) => updateDraft("priority", event.target.value)}><option>Low</option><option>Medium</option><option>High</option></select></label>
+          <label className="task-field">Category<input value={draft.category} onChange={(event) => updateDraft("category", event.target.value)} placeholder="e.g. Work" /></label>
+          <label className="task-field">Due date<input type="date" value={draft.dueDate} onChange={(event) => updateDraft("dueDate", event.target.value)} /></label>
+          <button className="primary-button task-save" type="submit" disabled={saving}>{saving ? "Saving..." : editingId ? "Save changes" : "Add task"}</button>
+        </form>
+        {error && <p className="form-error" role="alert">{error}</p>}
+      </section>
+      <section className="panel task-list-panel">
+        <div className="panel-header task-list-heading"><div><h2>Your tasks</h2><p>{tasks.filter((task) => !task.completed).length} open tasks</p></div><div className="filter-tabs">{["All", "Open", "Completed"].map((name) => <button className={filter === name ? "selected" : ""} key={name} onClick={() => setFilter(name)}>{name}<b>{name === "All" ? tasks.length : name === "Open" ? tasks.filter((task) => !task.completed).length : tasks.filter((task) => task.completed).length}</b></button>)}</div></div>
+        {loading ? <p className="empty-state">Loading tasks...</p> : shown.length ? <div className="task-list">{shown.map((task) => <article className={`task-row-card ${task.completed ? "is-complete" : ""}`} key={task.id}>
+          <button className="task-check" onClick={() => void update(task, { completed: !task.completed })} aria-label={`Mark ${task.title} ${task.completed ? "open" : "complete"}`}>{task.completed ? "✓" : "○"}</button>
+          <div className="task-row-copy"><strong>{task.title}</strong><div className="task-meta"><StatusPill status={task.priority} /><span>{task.category || "General"}</span><span className={task.dueDate && task.dueDate < new Date().toISOString().slice(0, 10) && !task.completed ? "task-overdue" : ""}>{formatDueDate(task.dueDate)}</span></div></div>
+          <div className="task-row-actions"><button className="text-button" onClick={() => startEdit(task)}>Edit</button><button className="text-button task-delete" onClick={() => void remove(task.id)}>Delete</button></div>
+        </article>)}</div> : <p className="empty-state">No tasks here yet. Add one above to get started.</p>}
+      </section>
+    </AppShell>
+  );
 }
