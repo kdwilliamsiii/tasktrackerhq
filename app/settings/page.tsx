@@ -56,6 +56,23 @@ export default function SettingsPage() {
           </ol>
         </div>
       </section>
+
+      <section className="panel mobile-app-panel">
+        <div className="settings-heading">
+          <div>
+            <h2>Mobile App (iOS &amp; Android)</h2>
+            <p>Install TaskTrackerHQ directly to your iPhone or Android home screen for full-screen access.</p>
+          </div>
+        </div>
+        <div className="extension-instructions">
+          <strong>How to install on Mobile:</strong>
+          <ol>
+            <li>Open <strong>www.tasktrackerhq.app</strong> in Safari (iPhone) or Chrome (Android).</li>
+            <li>On iPhone (Safari): Tap <strong>Share</strong> (bottom) ? <strong>Add to Home Screen</strong>.</li>
+            <li>On Android (Chrome): Tap <strong>? Menu</strong> (top right) ? <strong>Install app</strong>.</li>
+          </ol>
+        </div>
+      </section>
       <ThemeCustomizer />
     </div>
   </AppShell>;
