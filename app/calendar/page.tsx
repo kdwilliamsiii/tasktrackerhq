@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AppShell, PrimaryButton } from "../components/app-shell";
 import CalendarEventList, { type CalendarListEvent } from "../../components/CalendarEventList";
+import MonthCalendar from "../../components/MonthCalendar";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
 type EventItem = CalendarListEvent;
@@ -64,6 +65,9 @@ export default function CalendarPage() {
     integrationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => integrationsRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus(), 250);
   }
+  function selectDate(dateKey: string) {
+    setDraft((current) => ({ ...current, date: dateKey }));
+  }
   async function sync(provider: string) {
     setSyncing(provider);
     setMessage("");
@@ -89,6 +93,7 @@ export default function CalendarPage() {
   }
   return <AppShell active="Calendar" eyebrow="Workspace" title="Calendar" description="See what's happening and keep your commitments in view." action={<PrimaryButton onClick={focusIntegrations}>Connect calendar</PrimaryButton>}>
     <TTBotHint command="show today's schedule">TT Bot can help you spot meetings starting soon and keep your schedule in view.</TTBotHint>
+    <MonthCalendar events={events} selectedDate={draft.date} onSelectDate={selectDate} />
     <div className="dashboard-grid"><section className="panel"><div className="panel-header"><div><h2>{editingId ? "Edit event" : "Add an event"}</h2><p>{editingId ? "Update your local event details." : "Add a local event or connect a calendar below."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div><form className="event-form" onSubmit={saveEvent}><input required value={draft.title} onChange={(e) => updateDraft("title", e.target.value)} placeholder="Event title" aria-label="Event title" /><input required type="date" value={draft.date} onChange={(e) => updateDraft("date", e.target.value)} aria-label="Event date" /><input type="time" value={draft.time} onChange={(e) => updateDraft("time", e.target.value)} aria-label="Event time" /><select value={draft.reminderMinutes} onChange={(e) => updateDraft("reminderMinutes", e.target.value)} aria-label="Reminder"><option value="0">No reminder</option><option value="5">5 min before</option><option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option></select><button className="primary-button" type="submit">{editingId ? "Save changes" : "Add event"}</button></form><CalendarEventList events={[...events].sort((a,b) => `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`))} onEdit={editEvent} onDelete={deleteEvent} />{!events.length && <p className="empty-state">No events yet.</p>}</section><section className="panel" ref={integrationsRef} tabIndex={-1}><h2>Calendar integrations</h2><p className="panel-subtitle">Connect a provider to sync events.</p><div className="integration-row"><span>Google Calendar</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>{syncing === "google" ? "Syncing..." : "Sync"}</button></div><div className="integration-row"><span>Microsoft Outlook</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>{syncing === "microsoft" ? "Syncing..." : "Sync"}</button></div>{message && <p className="form-success" role="status">{message}</p>}</section></div>
   </AppShell>;
 }
