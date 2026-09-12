@@ -145,3 +145,50 @@ body {
 @media (max-width:600px) { .task-list-heading { align-items:flex-start; flex-direction:column; gap:12px; }.task-form-grid { grid-template-columns:1fr; }.task-field-wide,.task-save { grid-column:auto; }.task-row-card { grid-template-columns:28px 1fr; padding:12px 0; }.task-row-actions { grid-column:2; }.task-add { flex-wrap:wrap; }.task-add input { min-width:0; flex:1 1 100%; }.bar-font-settings { grid-template-columns:1fr; } }
 @media (max-width:700px) { .topbar-actions { gap:10px; }.global-search { width: min(42vw, 180px); }.global-search-results { right:-42px; width:min(320px, calc(100vw - 40px)); }.topbar-date { display:none; } }
 .sidebar .nav-item, .sidebar .nav-item.active, .sidebar .brand, .sidebar .workspace-copy strong { color: var(--sidebarText); }.topbar .breadcrumb, .topbar .breadcrumb strong, .topbar .topbar-actions, .topbar .topbar-date, .topbar .icon-button, .topbar .global-search-form input { color: var(--topbarText); }.topbar .global-search-form input::placeholder { color: color-mix(in srgb, var(--topbarText) 60%, transparent); }
+
+/* Sign in & Remember device options */
+.sign-in-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+.remember-device-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--teal) 4%, var(--surface));
+  cursor: pointer;
+  user-select: none;
+}
+.remember-device-checkbox:hover {
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--teal) 30%, var(--line));
+}
+.remember-device-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+.remember-device-checkbox span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.remember-device-checkbox strong {
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+}
+.remember-device-checkbox small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.sign-in-actions {
+  margin-top: 2px;
+}

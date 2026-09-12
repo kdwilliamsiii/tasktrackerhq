@@ -1,4 +1,5 @@
 "use client";
+import { SignInButtons } from "../../components/SignInButtons";
 
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -28,7 +29,7 @@ export default function ProfilePage() {
   }
 
   if (status === "loading") return <main className="profile-page"><p>Loading profile...</p></main>;
-  if (!session) return <AppShell active="Profile" eyebrow="Account" title="User Profile" description="Manage your identity and account settings."><section className="panel profile-guest"><h2>Sign in to view your profile</h2><p className="panel-subtitle">Connect Google or Microsoft to manage your profile and calendar integrations.</p><div className="button-row"><button className="primary-button" onClick={() => void signIn("google", { callbackUrl: "/profile" })}>Sign in with Google</button><button className="filter-button" onClick={() => void signIn("azure-ad", { callbackUrl: "/profile" })}>Microsoft</button></div></section></AppShell>;
+  if (!session) return <AppShell active="Profile" eyebrow="Account" title="User Profile" description="Manage your identity and account settings."><section className="panel profile-guest"><h2>Sign in to view your profile</h2><p className="panel-subtitle">Connect Google or Microsoft to manage your profile and calendar integrations.</p><SignInButtons callbackUrl="/profile" /></section></AppShell>;
 
   const providerName = session.user.provider === "azure-ad" ? "Microsoft" : "Google";
   return <AppShell active="Profile" eyebrow="Account" title="User Profile" description="Manage your identity, connected accounts, and preferences.">
