@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root { --background: #f6f8fb; --foreground: #182230; --ink-muted: #748094; --line: #e5e9f0; --navy: #17283d; --teal: #36b7a2; --orange: #e9825b; --font-app: "Inter", sans-serif; }
+:root { --background: #f6f8fb; --foreground: #182230; --surface: #ffffff; --sidebar: #ffffff; --ink-muted: #748094; --muted: #748094; --line: #e5e9f0; --navy: #17283d; --teal: #36b7a2; --orange: #e9825b; --font-app: "Inter", sans-serif; --radius: 9px; }
 
 @theme inline {
   --color-background: var(--background);
@@ -16,6 +16,16 @@ body {
 }
 
 * { box-sizing: border-box; }
+.app-frame, .main-content { background: var(--background); color: var(--foreground); }
+.sidebar { background: var(--sidebar); border-color: var(--line); }
+.topbar, .stat-card, .panel, .modal { background: var(--surface); border-color: var(--line); }
+.page-description, .panel-subtitle, .workspace-copy small, .profile small { color: var(--muted); }
+[data-radius="sharp"] .panel, [data-radius="sharp"] .stat-card, [data-radius="sharp"] button, [data-radius="sharp"] input, [data-radius="sharp"] select, [data-radius="sharp"] textarea { border-radius: 2px; }
+[data-radius="soft"] .panel, [data-radius="soft"] .stat-card, [data-radius="soft"] button, [data-radius="soft"] input, [data-radius="soft"] select, [data-radius="soft"] textarea { border-radius: 9px; }
+[data-radius="round"] .panel, [data-radius="round"] .stat-card, [data-radius="round"] button, [data-radius="round"] input, [data-radius="round"] select, [data-radius="round"] textarea { border-radius: 18px; }
+[data-density="compact"] .panel { padding-top: 14px; padding-bottom: 14px; }
+[data-density="airy"] .panel { padding-top: 30px; padding-bottom: 30px; }
+[data-shadows="false"] .stat-card, [data-shadows="false"] .panel { box-shadow: none !important; }
 .app-shell, .app-shell * { font-family: var(--font-app); }
 .legal-page { max-width: 760px; margin: 0 auto; padding: 2rem; color: var(--foreground); }
 .legal-page h1 { color: var(--navy); margin-bottom: .5rem; }
@@ -54,6 +64,10 @@ body {
 .font-choice { border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; background: var(--background); color: var(--foreground); }
 .font-choice:hover, .font-choice.selected { border-color: var(--teal); box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal) 18%, transparent); }
 .font-color-control { display: inline-flex; margin-top: 12px; }
+.style-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.style-controls label { display: grid; gap: 6px; color: var(--muted); font-size: 11px; }
+.style-controls select { min-width: 130px; padding: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--foreground); }
+.style-toggle { display: flex !important; align-items: center; grid-template-columns: auto auto; }
 @media (max-width: 700px) { .theme-presets { grid-template-columns: repeat(2, 1fr); } }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, a:focus-visible { outline: 3px solid rgba(54, 183, 162, .35); outline-offset: 3px; }

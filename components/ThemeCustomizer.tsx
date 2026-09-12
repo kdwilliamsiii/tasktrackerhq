@@ -1,6 +1,6 @@
 "use client";
 
-import { fontChoices, themePresets, useTheme, type ThemeColors } from "./ThemeProvider";
+import { fontChoices, themePresets, useTheme, type ThemeColors, type ThemeOptions } from "./ThemeProvider";
 
 const colorLabels: Array<{ key: keyof ThemeColors; label: string }> = [
   { key: "navy", label: "Navigation" },
@@ -8,10 +8,14 @@ const colorLabels: Array<{ key: keyof ThemeColors; label: string }> = [
   { key: "orange", label: "Highlight" },
   { key: "background", label: "Background" },
   { key: "foreground", label: "Text" },
+  { key: "surface", label: "Cards" },
+  { key: "sidebar", label: "Sidebar" },
+  { key: "muted", label: "Muted text" },
+  { key: "line", label: "Borders" },
 ];
 
 export default function ThemeCustomizer() {
-  const { colors, selectedPreset, applyPreset, updateColor, reset, font, setFont } = useTheme();
+  const { colors, selectedPreset, applyPreset, updateColor, reset, font, setFont, options, updateOption } = useTheme();
 
   return (
     <section className="panel theme-panel">
@@ -41,6 +45,12 @@ export default function ThemeCustomizer() {
           ))}
         </div>
         <label className="color-control font-color-control"><input type="color" value={colors.foreground} onChange={(event) => updateColor("foreground", event.target.value)} /><span>Font color</span><code>{colors.foreground}</code></label>
+      </div>
+      <h3 className="custom-colors-title">Interface style</h3>
+      <div className="style-controls">
+        <label>Corner style<select value={options.radius} onChange={(event) => updateOption("radius", event.target.value as ThemeOptions["radius"])}><option value="sharp">Sharp</option><option value="soft">Soft</option><option value="round">Round</option></select></label>
+        <label>Spacing<select value={options.density} onChange={(event) => updateOption("density", event.target.value as ThemeOptions["density"])}><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="airy">Airy</option></select></label>
+        <label className="style-toggle"><input type="checkbox" checked={options.shadows} onChange={(event) => updateOption("shadows", event.target.checked)} /> Card shadows</label>
       </div>
     </section>
   );
