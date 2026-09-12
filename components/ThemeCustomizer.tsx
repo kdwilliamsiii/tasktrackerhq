@@ -30,7 +30,7 @@ export default function ThemeCustomizer() {
       <div className="theme-presets" aria-label="Color themes">
         {themePresets.map((preset) => (
           <button className={`theme-preset ${selectedPreset === preset.id ? "selected" : ""}`} type="button" key={preset.id} onClick={() => applyPreset(preset)} aria-pressed={selectedPreset === preset.id}>
-            <span className="theme-swatch" style={{ background: preset.colors.background, borderColor: preset.colors.line }}><i style={{ background: preset.colors.sidebar }} /><i style={{ background: preset.colors.topbar }} /><i style={{ background: preset.colors.teal }} /><i style={{ background: preset.colors.orange }} /></span>
+            <span className="theme-swatch" style={{ background: preset.colors.background, borderColor: preset.colors.sidebar }}><i style={{ background: preset.colors.sidebar }} /><i style={{ background: preset.colors.topbar }} /><i style={{ background: preset.colors.teal }} /><i style={{ background: preset.colors.orange }} /></span>
             <strong>{preset.name}</strong>
           </button>
         ))}
