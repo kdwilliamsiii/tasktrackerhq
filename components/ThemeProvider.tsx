@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export type ThemeColors = {
   background: string;
@@ -10,6 +10,19 @@ export type ThemeColors = {
   orange: string;
   line: string;
 };
+
+export type FontChoice = {
+  id: string;
+  name: string;
+  family: string;
+};
+
+export const fontChoices: FontChoice[] = [
+  { id: "inter", name: "Inter", family: "'Inter', sans-serif" },
+  { id: "roboto", name: "Roboto", family: "'Roboto', sans-serif" },
+  { id: "open-sans", name: "Open Sans", family: "'Open Sans', sans-serif" },
+  { id: "merriweather", name: "Merriweather", family: "'Merriweather', serif" },
+];
 
 export type ThemePreset = {
   id: string;
@@ -27,9 +40,11 @@ export const themePresets: ThemePreset[] = [
 
 type ThemeContextValue = {
   colors: ThemeColors;
+  font: FontChoice;
   selectedPreset: string;
   applyPreset: (preset: ThemePreset) => void;
   updateColor: (name: keyof ThemeColors, value: string) => void;
+  setFont: (font: FontChoice) => void;
   reset: () => void;
 };
 
@@ -41,24 +56,35 @@ function applyColors(colors: ThemeColors) {
   for (const [name, value] of Object.entries(colors)) root.style.setProperty(`--${name}`, value);
 }
 
+function applyFont(font: FontChoice) {
+  document.documentElement.style.setProperty("--font-app", font.family);
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [colors, setColors] = useState(defaultTheme.colors);
   const [selectedPreset, setSelectedPreset] = useState(defaultTheme.id);
+  const [font, setFontChoice] = useState(fontChoices[0]);
 
   useEffect(() => {
     applyColors(colors);
   }, [colors]);
 
   useEffect(() => {
+    applyFont(font);
+  }, [font]);
+
+  useEffect(() => {
     const saved = localStorage.getItem("tasktracker-theme");
     if (!saved) return;
     try {
-      const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string };
+      const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string; font?: string };
       const savedColors = parsed.colors;
+      const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
       if (savedColors) {
         requestAnimationFrame(() => {
           setColors(savedColors);
           setSelectedPreset(parsed.preset || "custom");
+          if (savedFont) setFontChoice(savedFont);
         });
       }
     } catch {
@@ -66,20 +92,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const save = (next: ThemeColors, preset: string) => {
+  const save = useCallback((next: ThemeColors, preset: string, nextFont = font) => {
     setColors(next);
     setSelectedPreset(preset);
+    setFontChoice(nextFont);
     applyColors(next);
-    localStorage.setItem("tasktracker-theme", JSON.stringify({ colors: next, preset }));
-  };
+    applyFont(nextFont);
+    localStorage.setItem("tasktracker-theme", JSON.stringify({ colors: next, preset, font: nextFont.id }));
+  }, [font]);
 
   const value = useMemo<ThemeContextValue>(() => ({
     colors,
     selectedPreset,
     applyPreset: (preset) => save(preset.colors, preset.id),
     updateColor: (name, value) => save({ ...colors, [name]: value }, "custom"),
-    reset: () => save(defaultTheme.colors, defaultTheme.id),
-  }), [colors, selectedPreset]);
+    font,
+    setFont: (nextFont) => save(colors, selectedPreset, nextFont),
+    reset: () => save(defaultTheme.colors, defaultTheme.id, fontChoices[0]),
+  }), [colors, selectedPreset, font, save]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

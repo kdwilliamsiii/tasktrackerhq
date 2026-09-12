@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root { --background: #f6f8fb; --foreground: #182230; --ink-muted: #748094; --line: #e5e9f0; --navy: #17283d; --teal: #36b7a2; --orange: #e9825b; }
+:root { --background: #f6f8fb; --foreground: #182230; --ink-muted: #748094; --line: #e5e9f0; --navy: #17283d; --teal: #36b7a2; --orange: #e9825b; --font-app: "Inter", sans-serif; }
 
 @theme inline {
   --color-background: var(--background);
@@ -12,7 +12,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-app);
 }
 
 * { box-sizing: border-box; }
@@ -48,6 +48,11 @@ body {
 .color-control { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--background); color: var(--foreground); font-size: 11px; }
 .color-control input { width: 25px; height: 25px; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .color-control code { color: var(--ink-muted); font-size: 10px; }
+.font-settings { margin-top: 6px; }
+.font-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.font-choice { border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; background: var(--background); color: var(--foreground); }
+.font-choice:hover, .font-choice.selected { border-color: var(--teal); box-shadow: 0 0 0 2px color-mix(in srgb, var(--teal) 18%, transparent); }
+.font-color-control { display: inline-flex; margin-top: 12px; }
 @media (max-width: 700px) { .theme-presets { grid-template-columns: repeat(2, 1fr); } }
 button { font: inherit; cursor: pointer; }
 button:focus-visible, a:focus-visible { outline: 3px solid rgba(54, 183, 162, .35); outline-offset: 3px; }

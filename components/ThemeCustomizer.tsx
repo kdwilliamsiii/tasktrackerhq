@@ -1,6 +1,6 @@
 "use client";
 
-import { themePresets, useTheme, type ThemeColors } from "./ThemeProvider";
+import { fontChoices, themePresets, useTheme, type ThemeColors } from "./ThemeProvider";
 
 const colorLabels: Array<{ key: keyof ThemeColors; label: string }> = [
   { key: "navy", label: "Navigation" },
@@ -11,7 +11,7 @@ const colorLabels: Array<{ key: keyof ThemeColors; label: string }> = [
 ];
 
 export default function ThemeCustomizer() {
-  const { colors, selectedPreset, applyPreset, updateColor, reset } = useTheme();
+  const { colors, selectedPreset, applyPreset, updateColor, reset, font, setFont } = useTheme();
 
   return (
     <section className="panel theme-panel">
@@ -32,6 +32,15 @@ export default function ThemeCustomizer() {
         {colorLabels.map(({ key, label }) => (
           <label className="color-control" key={key}><input type="color" value={colors[key]} onChange={(event) => updateColor(key, event.target.value)} /><span>{label}</span><code>{colors[key]}</code></label>
         ))}
+      </div>
+      <div className="font-settings">
+        <h3 className="custom-colors-title">Font</h3>
+        <div className="font-choices" aria-label="Font choices">
+          {fontChoices.map((choice) => (
+            <button className={`font-choice ${font.id === choice.id ? "selected" : ""}`} type="button" key={choice.id} onClick={() => setFont(choice)} style={{ fontFamily: choice.family }} aria-pressed={font.id === choice.id}>{choice.name}</button>
+          ))}
+        </div>
+        <label className="color-control font-color-control"><input type="color" value={colors.foreground} onChange={(event) => updateColor("foreground", event.target.value)} /><span>Font color</span><code>{colors.foreground}</code></label>
       </div>
     </section>
   );
