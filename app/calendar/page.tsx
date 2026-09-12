@@ -18,13 +18,16 @@ function localDateTimeValue(value?: string) {
 }
 
 export default function CalendarPage() {
-  const [events, setEvents] = useState<EventItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("tasktracker-events") || "[]"); } catch { return []; }
-  });
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [draft, setDraft] = useState<EventDraft>(emptyDraft); const [editingId, setEditingId] = useState<string | null>(null); const [message, setMessage] = useState(""); const [syncing, setSyncing] = useState("");
   const integrationsRef = useRef<HTMLElement>(null);
   const { notify } = useNotifications();
+  useEffect(() => {
+    const load = window.setTimeout(() => {
+      try { setEvents(JSON.parse(localStorage.getItem("tasktracker-events") || "[]")); } catch { setEvents([]); }
+    }, 0);
+    return () => window.clearTimeout(load);
+  }, []);
   useEffect(() => {
     const check = window.setTimeout(() => {
       const now = Date.now();
