@@ -106,9 +106,10 @@ export default function CalendarPage() {
         setMessage(result?.reason || result?.error || `Unable to sync ${provider} calendar.`);
         return;
       }
-      const syncedEvents = (result.events || []).filter((event: EventItem) => event.date).map((event: EventItem) => ({ ...event, provider: provider === "google" ? "Google" : "Microsoft" }));
-      const localEvents = events.filter((event) => event.provider === "Local");
-      const next = [...localEvents, ...syncedEvents];
+      const providerLabel = provider === "google" ? "Google" : "Microsoft";
+      const syncedEvents = (result.events || []).filter((event: EventItem) => event.date).map((event: EventItem) => ({ ...event, provider: providerLabel }));
+      const keptEvents = events.filter((event) => event.provider !== providerLabel);
+      const next = [...keptEvents, ...syncedEvents];
       setEvents(next);
       localStorage.setItem("tasktracker-events", JSON.stringify(next));
       setMessage(`${provider} calendar synced (${syncedEvents.length} events).`);
