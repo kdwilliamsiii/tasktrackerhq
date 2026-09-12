@@ -68,6 +68,10 @@ const defaultTheme = themePresets[0];
 const defaultOptions: ThemeOptions = { radius: "soft", density: "comfortable", shadows: true };
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function normalizeColors(colors: Partial<ThemeColors>): ThemeColors {
+  return { ...defaultTheme.colors, ...colors };
+}
+
 function applyColors(colors: ThemeColors) {
   const root = document.documentElement;
   for (const [name, value] of Object.entries(colors)) root.style.setProperty(`--${name}`, value);
@@ -112,7 +116,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
       if (savedColors) {
         requestAnimationFrame(() => {
-          setColors(savedColors);
+          setColors(normalizeColors(savedColors));
           setSelectedPreset(parsed.preset || "custom");
           if (savedFont) setFontChoice(savedFont);
           if (parsed.options) setOptions({ ...defaultOptions, ...parsed.options });

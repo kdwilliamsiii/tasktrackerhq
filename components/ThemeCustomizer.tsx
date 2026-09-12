@@ -34,7 +34,7 @@ export default function ThemeCustomizer() {
       <h3 className="custom-colors-title">Custom colors</h3>
       <div className="custom-colors">
         {colorLabels.map(({ key, label }) => (
-          <label className="color-control" key={key}><input type="color" value={colors[key]} onChange={(event) => updateColor(key, event.target.value)} /><span>{label}</span><code>{colors[key]}</code></label>
+          <label className="color-control" key={key}><input type="color" value={colors[key] || "#000000"} onChange={(event) => updateColor(key, event.target.value)} /><span>{label}</span><code>{colors[key] || "#000000"}</code></label>
         ))}
       </div>
       <div className="font-settings">
