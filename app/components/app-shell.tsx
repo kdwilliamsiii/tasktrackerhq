@@ -42,9 +42,6 @@ export function AppShell({ children, active, eyebrow, title, description, action
           <Link className={`nav-item ${active === "Settings" ? "active" : ""}`} href="/settings"><span className="nav-icon">⚙</span>Settings</Link>
           <Link className={`nav-item ${active === "Feedback" ? "active" : ""}`} href="/admin/feedback"><span className="nav-icon">✦</span>Feedback</Link>
         </nav>
-        <div className="sidebar-footer">
-          <Link className="upgrade-note" href="/settings"><span className="spark">✦</span><div><strong>Free plan</strong><small>3 of 5 members</small></div><span aria-hidden="true">→</span></Link>
-        </div>
       </aside>
       <main className="main-content">
         <header className="topbar">
