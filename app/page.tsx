@@ -6,6 +6,7 @@ import { AppShell, PrimaryButton } from "./components/app-shell";
 import QuickAddWidget from "../components/QuickAddWidget";
 import TaskProgressWidget from "../components/TaskProgressWidget";
 import DailyOverviewWidget from "../components/DailyOverviewWidget";
+import DashboardCard from "../components/DashboardCard";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
@@ -44,10 +45,10 @@ export default function DashboardPage() {
       <QuickAddWidget />
       <TaskProgressWidget tasks={tasks} />
       <div className="dashboard-stats">
-        <div className="dashboard-stat"><span>Open tasks</span><strong>{tasks.length - completed}</strong><small>Needs attention</small></div>
-        <div className="dashboard-stat"><span>Completed</span><strong>{completed}</strong><small>{tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate</small></div>
-        <div className="dashboard-stat"><span>Upcoming events</span><strong>{events.length}</strong><small>On your calendar</small></div>
-        <div className="dashboard-stat dashboard-stat-accent"><span>Focus streak</span><strong>0 days</strong><small>Start today</small></div>
+        <DashboardCard label="Open tasks" value={tasks.length - completed} detail="Needs attention" />
+        <DashboardCard label="Completed" value={completed} detail={`${tasks.length ? Math.round(completed / tasks.length * 100) : 0}% completion rate`} />
+        <DashboardCard label="Upcoming events" value={events.length} detail="On your calendar" />
+        <DashboardCard label="Focus streak" value="0 days" detail="Start today" accent />
       </div>
       <div className="dashboard-grid dashboard-content-grid">
         <section className="dashboard-panel">
