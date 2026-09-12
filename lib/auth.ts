@@ -11,13 +11,33 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "development-only-secret",
   callbacks: {
     async jwt({ token, account, profile }) {
-      if (account) { token.accessToken = account.access_token; token.provider = account.provider; }
+      if (account) {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.provider = account.provider;
+        token.providerAccountId = account.providerAccountId;
+        token.createdAt ||= new Date().toISOString();
+      }
+      if (profile?.name) token.name = profile.name;
+      if (profile?.email) token.email = profile.email;
+      const profilePicture = (profile as { picture?: string } | undefined)?.picture;
+      if (profilePicture) token.picture = profilePicture;
       const email = token.email || (profile as { email?: string } | undefined)?.email;
       token.role = email && admins.has(email.toLowerCase()) ? "admin" : "user";
       return token;
     },
     async session({ session, token }) {
-      if (session.user) { session.user.id = token.sub || ""; session.user.role = token.role || "user"; session.user.provider = token.provider; session.user.accessToken = token.accessToken; }
+      if (session.user) {
+        session.user.id = token.sub || "";
+        session.user.role = token.role || "user";
+        session.user.provider = token.provider;
+        session.user.providerAccountId = token.providerAccountId;
+        session.user.createdAt = token.createdAt;
+        session.user.name = token.name;
+        session.user.email = token.email;
+        session.user.image = token.picture;
+        session.user.accessToken = token.accessToken;
+      }
       return session;
     },
   },
