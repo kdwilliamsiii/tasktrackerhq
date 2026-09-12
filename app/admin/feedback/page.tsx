@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
 import AdminReviewWidget, { type AdminSuggestion } from "../../../components/AdminReviewWidget";
+import { useNotifications } from "../../../components/NotificationProvider";
 
 export default function FeedbackReviewPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [suggestions, setSuggestions] = useState<AdminSuggestion[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { notify } = useNotifications();
 
   useEffect(() => {
     if (session?.user?.role !== "admin") return;
@@ -28,13 +30,13 @@ export default function FeedbackReviewPage() {
 
   async function update(id: string, status: AdminSuggestion["status"]) {
     const response = await fetch("/api/admin/feedback", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });
-    if (response.ok) setSuggestions((items) => items.map((item) => item.id === id ? { ...item, status } : item));
+    if (response.ok) { setSuggestions((items) => items.map((item) => item.id === id ? { ...item, status } : item)); notify(`Suggestion ${status}.`, status === "rejected" ? "warning" : "success"); }
     else setError("Unable to update suggestion status.");
   }
 
   async function remove(id: string) {
     const response = await fetch("/api/admin/feedback", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    if (response.ok) setSuggestions((items) => items.filter((item) => item.id !== id));
+    if (response.ok) { setSuggestions((items) => items.filter((item) => item.id !== id)); notify("Suggestion deleted.", "info"); }
     else setError("Unable to delete suggestion.");
   }
 

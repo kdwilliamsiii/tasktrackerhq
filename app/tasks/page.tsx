@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
+import { useNotifications } from "../../components/NotificationProvider";
 
 type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
@@ -22,6 +23,7 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const { notify } = useNotifications();
 
   async function load() {
     setLoading(true);
@@ -30,6 +32,11 @@ export default function TasksPage() {
       if (!response.ok) throw new Error("Unable to load tasks");
       const data = await response.json();
       setTasks(data.tasks || []);
+      const today = new Date().toISOString().slice(0, 10);
+      const due = (data.tasks || []).filter((task: Task) => !task.completed && task.dueDate === today).length;
+      const overdue = (data.tasks || []).filter((task: Task) => !task.completed && task.dueDate && task.dueDate < today).length;
+      if (due && !sessionStorage.getItem(`tasktracker-due-${today}`)) { notify(`${due} task${due === 1 ? "" : "s"} due today.`, "warning"); sessionStorage.setItem(`tasktracker-due-${today}`, "1"); }
+      if (overdue && !sessionStorage.getItem(`tasktracker-overdue-${today}`)) { notify(`${overdue} overdue task${overdue === 1 ? "" : "s"} need attention.`, "error"); sessionStorage.setItem(`tasktracker-overdue-${today}`, "1"); }
     } catch {
       setError("Tasks could not be loaded. Please try again.");
     } finally {
@@ -73,6 +80,7 @@ export default function TasksPage() {
       });
       if (!response.ok) throw new Error("Unable to save task");
       resetDraft();
+      notify(editingId ? "Task updated." : "Task created.", "success");
       await load();
     } catch {
       setError("The task could not be saved. Please try again.");
@@ -87,13 +95,13 @@ export default function TasksPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: task.id, ...changes }),
     });
-    if (response.ok) await load();
+    if (response.ok) { notify(changes.completed ? "Task marked complete." : "Task reopened.", "success"); await load(); }
     else setError("The task could not be updated.");
   }
 
   async function remove(id: string) {
     const response = await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (response.ok) setTasks((old) => old.filter((task) => task.id !== id));
+    if (response.ok) { setTasks((old) => old.filter((task) => task.id !== id)); notify("Task deleted.", "info"); }
     else setError("The task could not be deleted.");
   }
 

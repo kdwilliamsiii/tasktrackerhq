@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell, PrimaryButton } from "../components/app-shell";
 import CalendarEventList, { type CalendarListEvent } from "../../components/CalendarEventList";
+import { useNotifications } from "../../components/NotificationProvider";
 type EventItem = CalendarListEvent;
 export default function CalendarPage() {
   const [events, setEvents] = useState<EventItem[]>(() => {
@@ -9,7 +10,19 @@ export default function CalendarPage() {
     try { return JSON.parse(localStorage.getItem("tasktracker-events") || "[]"); } catch { return []; }
   });
   const [title, setTitle] = useState(""); const [date, setDate] = useState(new Date().toISOString().slice(0, 10)); const [message, setMessage] = useState(""); const [syncing, setSyncing] = useState("");
-  function add(e: React.FormEvent) { e.preventDefault(); if (!title.trim()) return; const next = [...events, { id: crypto.randomUUID(), title: title.trim(), date, provider: "Local" }]; setEvents(next); localStorage.setItem("tasktracker-events", JSON.stringify(next)); setTitle(""); }
+  const { notify } = useNotifications();
+  useEffect(() => {
+    const check = window.setTimeout(() => {
+      const now = Date.now();
+      const soon = events.find((event) => event.time && new Date(event.time).getTime() > now && new Date(event.time).getTime() - now < 30 * 60 * 1000);
+      if (soon && !sessionStorage.getItem(`tasktracker-event-${soon.id}`)) {
+        notify(`${soon.title} starts soon.`, "warning");
+        sessionStorage.setItem(`tasktracker-event-${soon.id}`, "1");
+      }
+    }, 0);
+    return () => window.clearTimeout(check);
+  }, [events, notify]);
+  function add(e: React.FormEvent) { e.preventDefault(); if (!title.trim()) return; const next = [...events, { id: crypto.randomUUID(), title: title.trim(), date, provider: "Local" }]; setEvents(next); localStorage.setItem("tasktracker-events", JSON.stringify(next)); setTitle(""); notify("Calendar event added.", "success"); }
   async function sync(provider: string) {
     setSyncing(provider);
     setMessage("");
@@ -26,6 +39,7 @@ export default function CalendarPage() {
       setEvents(next);
       localStorage.setItem("tasktracker-events", JSON.stringify(next));
       setMessage(`${provider} calendar synced (${syncedEvents.length} events).`);
+      notify(`${provider} calendar updated.`, "success");
     } catch {
       setMessage(`Unable to reach the ${provider} calendar service.`);
     } finally {

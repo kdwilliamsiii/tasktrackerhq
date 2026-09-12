@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useNotifications } from "./NotificationProvider";
 
 export default function SuggestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [featureName, setFeatureName] = useState("");
@@ -9,6 +10,7 @@ export default function SuggestModal({ open, onClose }: { open: boolean; onClose
   const [priority, setPriority] = useState("Medium");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { notify } = useNotifications();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,6 +33,7 @@ export default function SuggestModal({ open, onClose }: { open: boolean; onClose
       setDescription("");
       setCategory("Tasks");
       setPriority("Medium");
+      notify("Thanks for your feedback! Your suggestion was submitted.", "success");
       onClose();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Unable to submit your suggestion.");
