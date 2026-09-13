@@ -1664,3 +1664,84 @@ html, body, .app-frame, .main-content {
     padding: 10px 12px !important;
   }
 }
+
+/* Mobile Hub Navigation & Section Redesign */
+.calendar-hub-nav {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 14px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hub-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.hub-tab:hover {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 5%, var(--surface));
+}
+
+.hub-tab.active {
+  border-color: var(--teal);
+  color: #ffffff;
+  background: var(--navy);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--navy) 20%, transparent);
+}
+
+.section-title-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge-icon {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.quick-reschedule-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.hidden-date-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .mobile-hidden-section {
+    display: none !important;
+  }
+
+  .calendar-hub-nav {
+    display: flex !important;
+  }
+}

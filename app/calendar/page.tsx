@@ -5,6 +5,7 @@ import CalendarEventList, { type CalendarListEvent } from "../../components/Cale
 import MonthCalendar from "../../components/MonthCalendar";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
+import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2 } from "lucide-react";
 
 type EventItem = CalendarListEvent;
 type EventDraft = { title: string; date: string; time: string; reminderMinutes: string };
@@ -15,7 +16,7 @@ function localDateTimeValue(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   const pad = (part: number) => String(part).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export default function CalendarPage() {
@@ -26,6 +27,7 @@ export default function CalendarPage() {
   const [syncing, setSyncing] = useState("");
   const [syncMonthsBack, setSyncMonthsBack] = useState("3");
   const [eventFilter, setEventFilter] = useState("All");
+  const [activeSection, setActiveSection] = useState<"events" | "add" | "integrations">("events");
   const integrationsRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLElement>(null);
   const { notify } = useNotifications();
@@ -191,6 +193,7 @@ export default function CalendarPage() {
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
     if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     resetDraft();
+    setActiveSection("events");
     if (target?.provider !== "Google") {
       notify(editingId ? "Calendar event updated." : "Calendar event added.", "success");
     }
@@ -202,6 +205,7 @@ export default function CalendarPage() {
       return;
     }
     setEditingId(event.id);
+    setActiveSection("add");
     setDraft({
       title: event.title,
       date: event.date.slice(0, 10),
@@ -249,8 +253,8 @@ export default function CalendarPage() {
   }
 
   function focusIntegrations() {
+    setActiveSection("integrations");
     integrationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => integrationsRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus(), 250);
   }
 
   function handleTrashDelete(eventId: string) {
@@ -265,6 +269,7 @@ export default function CalendarPage() {
 
   function openEventFromCalendar(event: EventItem) {
     setEditingId(event.id);
+    setActiveSection("add");
     if (event.provider === "Local" || event.provider === "Google") {
       setDraft({
         title: event.title,
@@ -272,12 +277,6 @@ export default function CalendarPage() {
         time: localDateTimeValue(event.time),
         reminderMinutes: String(event.reminderMinutes ?? 30),
       });
-    }
-    const itemEl = document.getElementById("event-item-" + event.id);
-    if (itemEl) {
-      itemEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    } else {
-      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
@@ -452,13 +451,84 @@ export default function CalendarPage() {
         onEventDelete={handleTrashDelete}
       />
 
+      {/* Mobile Hub Navigation Selector */}
+      <div className="calendar-hub-nav">
+        <button
+          type="button"
+          className={"hub-tab" + (activeSection === "events" ? " active" : "")}
+          onClick={() => setActiveSection("events")}
+        >
+          <CalendarDays size={16} />
+          <span>Events ({filteredEvents.length})</span>
+        </button>
+        <button
+          type="button"
+          className={"hub-tab" + (activeSection === "add" ? " active" : "")}
+          onClick={() => setActiveSection("add")}
+        >
+          <PlusCircle size={16} />
+          <span>{editingId ? "Edit Event" : "Add Event"}</span>
+        </button>
+        <button
+          type="button"
+          className={"hub-tab" + (activeSection === "integrations" ? " active" : "")}
+          onClick={() => setActiveSection("integrations")}
+        >
+          <Share2 size={16} />
+          <span>Sync &amp; Integrations</span>
+        </button>
+      </div>
+
       <div className="calendar-sections-grid">
+        {/* Scheduled Events List Section */}
+        {(activeSection === "events" || typeof window !== "undefined") && (
+          <section className={"panel calendar-events-panel" + (activeSection !== "events" ? " mobile-hidden-section" : "")}>
+            <div className="panel-header calendar-events-header">
+              <div className="section-title-badge">
+                <CalendarDays size={18} className="badge-icon" />
+                <div>
+                  <h2>Scheduled events</h2>
+                  <p>{filteredEvents.length} event{filteredEvents.length === 1 ? "" : "s"} shown</p>
+                </div>
+              </div>
+              <div className="filter-tabs">
+                {["All", "Local", "Google", "Microsoft"].map((name) => (
+                  <button
+                    className={eventFilter === name ? "selected" : ""}
+                    key={name}
+                    onClick={() => setEventFilter(name)}
+                    type="button"
+                  >
+                    {name}
+                    <b>
+                      {name === "All"
+                        ? events.length
+                        : events.filter((e) => (e.provider || "Local") === name).length}
+                    </b>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <CalendarEventList
+              selectedEventId={editingId}
+              events={filteredEvents}
+              onEdit={editEvent}
+              onReschedule={(event, newDate) => void moveEvent(event.id, newDate)}
+              onDelete={deleteEvent}
+            />
+            {!events.length && <p className="empty-state">No events yet.</p>}
+          </section>
+        )}
+
         {/* Add/Edit Event Section */}
-        <section className="panel" ref={formRef}>
+        <section className={"panel" + (activeSection !== "add" ? " mobile-hidden-section" : "")} ref={formRef}>
           <div className="panel-header">
-            <div>
-              <h2>{editingId ? "Edit event" : "Add an event"}</h2>
-              <p>{editingId ? "Update your event details." : "Add a local event or connect a calendar below."}</p>
+            <div className="section-title-badge">
+              <PlusCircle size={18} className="badge-icon" />
+              <div>
+                <h2>{editingId ? "Edit event" : "Add an event"}</h2>
+                <p>{editingId ? "Update your event details." : "Add a local event or connect a calendar below."}</p>
+              </div>
             </div>
             {editingId && (
               <button className="text-button" type="button" onClick={resetDraft}>
@@ -509,46 +579,15 @@ export default function CalendarPage() {
           </form>
         </section>
 
-        {/* Scheduled Events List Section */}
-        <section className="panel calendar-events-panel">
-          <div className="panel-header calendar-events-header">
-            <div>
-              <h2>Scheduled events</h2>
-              <p>{filteredEvents.length} event{filteredEvents.length === 1 ? "" : "s"} shown</p>
-            </div>
-            <div className="filter-tabs">
-              {["All", "Local", "Google", "Microsoft"].map((name) => (
-                <button
-                  className={eventFilter === name ? "selected" : ""}
-                  key={name}
-                  onClick={() => setEventFilter(name)}
-                  type="button"
-                >
-                  {name}
-                  <b>
-                    {name === "All"
-                      ? events.length
-                      : events.filter((e) => (e.provider || "Local") === name).length}
-                  </b>
-                </button>
-              ))}
-            </div>
-          </div>
-          <CalendarEventList
-            selectedEventId={editingId}
-            events={filteredEvents}
-            onEdit={editEvent}
-            onDelete={deleteEvent}
-          />
-          {!events.length && <p className="empty-state">No events yet.</p>}
-        </section>
-
         {/* Calendar Integrations Section */}
-        <section className="panel calendar-integrations-panel" ref={integrationsRef} tabIndex={-1}>
+        <section className={"panel calendar-integrations-panel" + (activeSection !== "integrations" ? " mobile-hidden-section" : "")} ref={integrationsRef} tabIndex={-1}>
           <div className="panel-header">
-            <div>
-              <h2>Calendar integrations</h2>
-              <p>Connect a provider to sync events into your workspace.</p>
+            <div className="section-title-badge">
+              <Share2 size={18} className="badge-icon" />
+              <div>
+                <h2>Calendar integrations</h2>
+                <p>Connect a provider to sync events into your workspace.</p>
+              </div>
             </div>
           </div>
 
@@ -570,7 +609,7 @@ export default function CalendarPage() {
             <div className="integration-card">
               <div className="integration-info">
                 <strong>Google Calendar</strong>
-                <small>2-Way sync &amp; rescheduling</small>
+                <small>2-Way sync &amp; rescheduling enabled</small>
               </div>
               <button
                 className="filter-button sync-btn"
@@ -578,7 +617,8 @@ export default function CalendarPage() {
                 onClick={() => sync("google")}
                 type="button"
               >
-                {syncing === "google" ? "Syncing..." : "Sync Now"}
+                {syncing === "google" ? <RotateCw size={14} className="spinning" /> : <CheckCircle2 size={14} />}
+                <span>{syncing === "google" ? "Syncing..." : "Sync Now"}</span>
               </button>
             </div>
 
@@ -593,7 +633,8 @@ export default function CalendarPage() {
                 onClick={() => sync("microsoft")}
                 type="button"
               >
-                {syncing === "microsoft" ? "Syncing..." : "Sync Now"}
+                {syncing === "microsoft" ? <RotateCw size={14} className="spinning" /> : <CheckCircle2 size={14} />}
+                <span>{syncing === "microsoft" ? "Syncing..." : "Sync Now"}</span>
               </button>
             </div>
           </div>

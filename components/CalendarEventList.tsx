@@ -1,4 +1,4 @@
-import { Clock, MapPin, Bell } from "lucide-react";
+import { Clock, MapPin, Bell, Calendar } from "lucide-react";
 
 export type CalendarListEvent = {
   id: string;
@@ -14,11 +14,13 @@ export default function CalendarEventList({
   events,
   selectedEventId,
   onEdit,
+  onReschedule,
   onDelete,
 }: {
   events: CalendarListEvent[];
   selectedEventId?: string | null;
   onEdit?: (event: CalendarListEvent) => void;
+  onReschedule?: (event: CalendarListEvent, newDate: string) => void;
   onDelete?: (event: CalendarListEvent) => void;
 }) {
   return (
@@ -42,6 +44,8 @@ export default function CalendarEventList({
           }
         }
 
+        const isEditable = providerName === "Local" || providerName === "Google";
+
         return (
           <article
             className={"event-list-card" + (isSelected ? " selected-event-card" : "")}
@@ -56,14 +60,31 @@ export default function CalendarEventList({
                 <span className="event-date-chip">{formattedDate}</span>
               </div>
 
-              {(providerName === "Local" || providerName === "Google") && onEdit && onDelete && (
+              {isEditable && (
                 <div className="event-card-actions">
-                  <button className="text-button" type="button" onClick={() => onEdit(event)}>
-                    Edit
-                  </button>
-                  <button className="text-button danger-text" type="button" onClick={() => onDelete(event)}>
-                    Delete
-                  </button>
+                  {onReschedule && (
+                    <label className="text-button quick-reschedule-label" title="1-Tap Reschedule">
+                      <Calendar size={12} /> Move
+                      <input
+                        className="hidden-date-input"
+                        type="date"
+                        value={rawDate}
+                        onChange={(e) => {
+                          if (e.target.value) onReschedule(event, e.target.value);
+                        }}
+                      />
+                    </label>
+                  )}
+                  {onEdit && (
+                    <button className="text-button" type="button" onClick={() => onEdit(event)}>
+                      Edit
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button className="text-button danger-text" type="button" onClick={() => onDelete(event)}>
+                      Delete
+                    </button>
+                  )}
                 </div>
               )}
             </div>

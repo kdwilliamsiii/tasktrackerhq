@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { CalendarListEvent } from "./CalendarEventList";
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -52,6 +52,7 @@ export default function MonthCalendar({
   });
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [trashHover, setTrashHover] = useState(false);
+  const activeTouchRef = useRef<{ eventId: string } | null>(null);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarListEvent[]>();
@@ -95,7 +96,34 @@ export default function MonthCalendar({
     e.dataTransfer.setData("text/plain", event.title);
   }
 
-  
+  function handleTouchStart(e: React.TouchEvent, event: CalendarListEvent) {
+    if (!isMovable(event)) return;
+    activeTouchRef.current = { eventId: event.id };
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (!activeTouchRef.current) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el) return;
+    const cell = el.closest("[data-date-key]") as HTMLElement | null;
+    if (cell && cell.dataset.dateKey) {
+      setDragOverDate(cell.dataset.dateKey);
+    }
+  }
+
+  function handleTouchEnd() {
+    if (!activeTouchRef.current) return;
+    const eventId = activeTouchRef.current.eventId;
+    const targetKey = dragOverDate;
+    activeTouchRef.current = null;
+    setDragOverDate(null);
+    if (eventId && targetKey) {
+      onEventDrop?.(eventId, targetKey);
+    }
+  }
+
   function handleTrashDrop(e: React.DragEvent) {
     e.preventDefault();
     setTrashHover(false);
@@ -120,9 +148,9 @@ export default function MonthCalendar({
     <section className="panel calendar-shell">
       <div className="calendar-toolbar">
         <div className="month-nav">
-          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>‹</button>
+          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>?</button>
           <strong>{monthLabel}</strong>
-          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>›</button>
+          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>?</button>
         </div>
         <div className="calendar-actions">
           <button className="filter-button" type="button" onClick={goToToday}>Today</button>
@@ -140,6 +168,7 @@ export default function MonthCalendar({
             return (
               <div
                 key={key}
+                data-date-key={key}
                 role="button"
                 tabIndex={0}
                 className={`calendar-cell ${inMonth ? "" : "muted-day"} ${isToday ? "current-day" : ""} ${isSelected ? "selected-day" : ""} ${dragOverDate === key ? "drop-target" : ""}`}
@@ -159,6 +188,9 @@ export default function MonthCalendar({
                     title={event.title}
                     draggable={isMovable(event)}
                     onDragStart={(e) => handleDragStart(e, event)}
+                    onTouchStart={(e) => handleTouchStart(e, event)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
