@@ -236,15 +236,19 @@ export default function CalendarPage() {
     }
   }
 
-  async function handleExternalDrop(e: React.DragEvent, dateKey: string) {
+    async function handleExternalDrop(e: React.DragEvent, dateKey: string) {
     e.preventDefault();
     const textData = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("text/uri-list") || "";
     const htmlData = e.dataTransfer.getData("text/html");
 
     let title = "";
     if (htmlData) {
-      const doc = new DOMParser().parseFromString(htmlData, "text/html");
-      title = (doc.body.textContent || "").trim();
+      try {
+        const doc = new DOMParser().parseFromString(htmlData, "text/html");
+        title = (doc.body.textContent || "").trim();
+      } catch {
+        // Fallback
+      }
     }
     if (!title && textData) {
       title = textData.trim();
@@ -253,7 +257,7 @@ export default function CalendarPage() {
     title = title.replace(/\s+/g, " ").slice(0, 100);
 
     if (!title) {
-      notify("No text or title found to create event.", "warning");
+      notify("No text found in dropped item.", "warning");
       return;
     }
 
@@ -265,7 +269,6 @@ export default function CalendarPage() {
       reminderMinutes: 30,
     };
 
-    // Save to database
     try {
       await fetch("/api/events", {
         method: "POST",
@@ -273,13 +276,13 @@ export default function CalendarPage() {
         body: JSON.stringify(newEvent),
       });
     } catch {
-      // Offline fallback
+      // Offline
     }
 
     const next = [...events, newEvent];
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
-    notify('Added "' + (title.length > 30 ? title.slice(0, 30) + "..." : title) + '" to ' + dateKey + ".", "success");
+    notify('Created event "' + (title.length > 30 ? title.slice(0, 30) + "..." : title) + '" on ' + dateKey + ".", "success");
   }
 
   async function moveEvent(eventId: string, dateKey: string) {
