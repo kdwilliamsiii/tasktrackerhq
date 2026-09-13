@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TaskTrackerHQ ? Quick Capture & Assistant",
+  "name": "TaskTrackerHQ - Quick Capture & Assistant",
   "short_name": "TaskTrackerHQ",
   "version": "1.0.0",
   "description": "Capture tasks from any webpage, chat with TT Bot AI, and manage your schedule with TaskTrackerHQ.",
