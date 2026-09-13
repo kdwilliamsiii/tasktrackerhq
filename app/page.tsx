@@ -193,6 +193,15 @@ export default function DashboardPage() {
           {!events.length && <p className="dashboard-empty">No upcoming events. Add one in Calendar.</p>}
         </section>
       </div>
+
+      <footer style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, fontSize: 11, color: "var(--muted)" }}>
+        <span>&copy; {new Date().getFullYear()} TaskTrackerHQ. All rights reserved.</span>
+        <div style={{ display: "flex", gap: 14 }}>
+          <Link href="/terms" style={{ color: "var(--muted)", textDecoration: "none" }}>Terms of Service</Link>
+          <Link href="/privacy" style={{ color: "var(--muted)", textDecoration: "none" }}>Privacy Policy</Link>
+          <Link href="/admin/feedback" style={{ color: "var(--muted)", textDecoration: "none" }}>Feedback</Link>
+        </div>
+      </footer>
     </AppShell>
   );
 }

@@ -6,6 +6,8 @@ import Image from "next/image";
 import { AppShell } from "../components/app-shell";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import AiUsageWidget from "../../components/AiUsageWidget";
+import Link from "next/link";
+import { Shield, FileText } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -78,6 +80,31 @@ export default function SettingsPage() {
       <AiUsageWidget />
       <NotificationSettings />
       <ThemeCustomizer />
+
+      <section className="panel" style={{ gridColumn: "1 / -1" }}>
+        <div className="settings-heading">
+          <div>
+            <h2>Legal &amp; Compliance</h2>
+            <p>Review TaskTrackerHQ terms of service, AI usage policies, and privacy disclosures.</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
+          <Link
+            href="/terms"
+            className="filter-button"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none", padding: "8px 14px", fontSize: 12 }}
+          >
+            <FileText size={14} /> Terms of Service
+          </Link>
+          <Link
+            href="/privacy"
+            className="filter-button"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none", padding: "8px 14px", fontSize: 12 }}
+          >
+            <Shield size={14} /> Privacy Policy
+          </Link>
+        </div>
+      </section>
     </div>
   </AppShell>;
 }
