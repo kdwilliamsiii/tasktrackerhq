@@ -371,8 +371,13 @@ export default function CalendarPage() {
   }
 
   
+  const todayKey = new Date().toISOString().slice(0, 10);
   const filteredEvents = events
-    .filter((e) => eventFilter === "All" || (e.provider || "Local") === eventFilter)
+    .filter((e) => {
+      const matchesProvider = eventFilter === "All" || (e.provider || "Local") === eventFilter;
+      const eventDateKey = (e.date || "").slice(0, 10);
+      return matchesProvider && eventDateKey >= todayKey;
+    })
     .slice()
     .sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
 
