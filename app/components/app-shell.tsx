@@ -8,12 +8,12 @@ import SearchBar from "../../components/SearchBar";
 import { useNotifications } from "../../components/NotificationProvider";
 
 const navigation = [
-  { href: "/", label: "Overview", icon: "◈" },
+  { href: "/", label: "Overview", icon: "Ὄa" },
   { href: "/tasks", label: "Tasks", icon: "☑" },
   { href: "/focus", label: "Focus", icon: "⏱" },
-  { href: "/calendar", label: "Calendar", icon: "▦" },
-  { href: "/gpa", label: "GPA Tracker", icon: "★" },
-  { href: "/profile", label: "Profile", icon: "◎" },
+  { href: "/calendar", label: "Calendar", icon: "Ὄ5" },
+  { href: "/gpa", label: "GPA Tracker", icon: "Ἱ3" },
+  { href: "/profile", label: "Profile", icon: "὆4" },
 ];
 
 export function AppShell({ children, active, eyebrow, title, description, action }: { children: React.ReactNode; active: string; eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
@@ -155,7 +155,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
             <span className="nav-icon">⚙</span>Settings
           </Link>
           <Link className={"nav-item" + (active === "Feedback" ? " active" : "")} href="/admin/feedback" onClick={() => setMobileNavOpen(false)}>
-            <span className="nav-icon">✦</span>Feedback
+            <span className="nav-icon">Ὂ1</span>Feedback
           </Link>
 
           <button
