@@ -89,7 +89,16 @@ export type CalendarEvent = {
 const eventsCollection = () => db.collection<CalendarEvent>("events");
 
 export async function listCalendarEvents(userId?: string) {
-  const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+  try {
+    await eventsCollection().deleteMany({ provider: { $in: ["Google", "Microsoft"] } });
+  } catch {
+    // Ignore
+  }
+
+  const userFilter = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+  const providerFilter = { $or: [{ provider: "Local" }, { provider: { $exists: false } }] };
+  const query = { $and: [userFilter, providerFilter] };
+
   return eventsCollection().find(query, { projection: { _id: 0 } }).sort({ date: 1 }).toArray();
 }
 

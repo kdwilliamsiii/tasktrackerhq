@@ -45,12 +45,16 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
 
+  if (body.provider && body.provider !== "Local") {
+    return json(request, { ok: true, ignored: "Provider events stored via provider sync" });
+  }
+
   const event = await addCalendarEvent({
     userId,
     title: body.title.trim(),
     date: body.date || new Date().toISOString().slice(0, 10),
     time: body.time || "",
-    provider: body.provider || "Local",
+    provider: "Local",
     id: body.id,
     reminderMinutes: Number(body.reminderMinutes) || 30,
   });

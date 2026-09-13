@@ -28,6 +28,9 @@ export async function syncGoogleCalendar(accessToken?: string, monthsBack: numbe
     });
     if (!response.ok) {
       if (rawEvents.length) break;
+      if (response.status === 401) {
+        return { provider: "google", synced: false, reason: "Google session expired. Click 'Reconnect' in Settings to refresh access." };
+      }
       return { provider: "google", synced: false, reason: "Google Calendar returned " + response.status };
     }
     const data = await response.json();
