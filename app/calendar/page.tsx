@@ -117,7 +117,7 @@ export default function CalendarPage() {
   }
 
   function editEvent(event: EventItem) {
-    if (event.provider && event.provider !== "Local") {
+    if (event.provider && event.provider !== "Local" && event.provider !== "Google") {
       notify(event.provider + " events are read-only here. Edit them in " + event.provider + ".", "info");
       return;
     }
@@ -175,7 +175,15 @@ export default function CalendarPage() {
   }
 
   function openEventFromCalendar(event: EventItem) {
-    editEvent(event);
+    setEditingId(event.id);
+    if (event.provider === "Local" || event.provider === "Google") {
+      setDraft({
+        title: event.title,
+        date: event.date.slice(0, 10),
+        time: localDateTimeValue(event.time),
+        reminderMinutes: String(event.reminderMinutes ?? 30),
+      });
+    }
     const itemEl = document.getElementById("event-item-" + event.id);
     if (itemEl) {
       itemEl.scrollIntoView({ behavior: "smooth", block: "center" });

@@ -698,3 +698,10 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Limit Calendar Event List View Height */
+.calendar-event-list {
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
