@@ -9,8 +9,8 @@ import { useNotifications } from "../../components/NotificationProvider";
 
 const navigation = [
   { href: "/", label: "Overview", icon: "◈" },
-  { href: "/tasks", label: "Tasks", icon: "□" },
-  { href: "/focus", label: "Focus", icon: "◷" },
+  { href: "/tasks", label: "Tasks", icon: "☑" },
+  { href: "/focus", label: "Focus", icon: "⏱" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
   { href: "/gpa", label: "GPA Tracker", icon: "★" },
   { href: "/profile", label: "Profile", icon: "◎" },
