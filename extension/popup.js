@@ -55,14 +55,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const url = await getServerUrl();
-      const res = await fetch(`${url}/api/tasks`, {
+      const res = await fetch(`${url}/api/tasks`, { credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, priority, category, dueDate })
       });
 
       if (res.ok) {
-        captureStatus.textContent = "? Task saved to TaskTrackerHQ!";
+        captureStatus.textContent = "Task saved to TaskTrackerHQ!";
         captureStatus.classList.add("success");
         document.getElementById("taskTitle").value = "";
         loadTasks();
@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const url = await getServerUrl();
-      const res = await fetch(`${url}/api/tasks`);
+      const res = await fetch(`${url}/api/tasks`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
 
       const data = await res.json();
@@ -117,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const item = e.target.closest(".task-item");
           const id = item.getAttribute("data-id");
           const url = await getServerUrl();
-          await fetch(`${url}/api/tasks`, {
+          await fetch(`${url}/api/tasks`, { credentials: "include",
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id, completed: e.target.checked })
@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const item = e.target.closest(".task-item");
           const id = item.getAttribute("data-id");
           const url = await getServerUrl();
-          await fetch(`${url}/api/tasks`, {
+          await fetch(`${url}/api/tasks`, { credentials: "include",
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id })
@@ -163,7 +163,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const url = await getServerUrl();
-      const res = await fetch(`${url}/api/tt-bot`, {
+      const res = await fetch(`${url}/api/tt-bot`, { credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg })
@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const newUrl = serverUrlInput.value.trim().replace(/\/+$/, "");
     await chrome.storage.local.set({ serverUrl: newUrl });
     const settingsStatus = document.getElementById("settingsStatus");
-    settingsStatus.textContent = "? Settings saved!";
+    settingsStatus.textContent = "Settings saved!";
     settingsStatus.className = "status-msg success";
     document.getElementById("openAppBtn").href = newUrl;
     setTimeout(() => { settingsStatus.textContent = ""; }, 2500);

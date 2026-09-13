@@ -34,6 +34,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     const res = await fetch(`${serverUrl}/api/tasks`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
@@ -43,7 +44,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     });
 
     if (res.ok) {
-      chrome.action.setBadgeText({ text: "?" });
+      chrome.action.setBadgeText({ text: "OK" });
       chrome.action.setBadgeBackgroundColor({ color: "#36b7a2" });
       setTimeout(() => chrome.action.setBadgeText({ text: "" }), 2500);
     } else {
