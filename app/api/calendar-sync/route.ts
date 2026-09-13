@@ -19,14 +19,15 @@ export async function PATCH(request: Request) {
   if (!body?.id || !body?.provider) return NextResponse.json({ error: "Missing event id or provider" }, { status: 400 });
 
   if (body.provider === "Google") {
-    const accessToken = session?.user?.provider === "google" ? session.user.accessToken : undefined;
+    const accessToken = session?.user?.accessToken;
     if (!accessToken) return NextResponse.json({ error: "Google session required to update Google event" }, { status: 401 });
     const success = await updateGoogleCalendarEvent(accessToken, body.id, {
       title: body.title,
       date: body.date,
       time: body.time,
     });
-    return NextResponse.json({ ok: success });
+    if (!success) return NextResponse.json({ error: "Google Calendar API update failed" }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "Provider not editable" }, { status: 400 });
@@ -42,10 +43,11 @@ export async function DELETE(request: Request) {
   if (!id || !provider) return NextResponse.json({ error: "Missing event id or provider" }, { status: 400 });
 
   if (provider === "Google") {
-    const accessToken = session?.user?.provider === "google" ? session.user.accessToken : undefined;
+    const accessToken = session?.user?.accessToken;
     if (!accessToken) return NextResponse.json({ error: "Google session required to delete Google event" }, { status: 401 });
     const success = await deleteGoogleCalendarEvent(accessToken, id);
-    return NextResponse.json({ ok: success });
+    if (!success) return NextResponse.json({ error: "Google Calendar API delete failed" }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ error: "Provider not editable" }, { status: 400 });

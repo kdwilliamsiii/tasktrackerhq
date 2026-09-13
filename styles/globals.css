@@ -1745,3 +1745,14 @@ html, body, .app-frame, .main-content {
     display: flex !important;
   }
 }
+
+/* Web App Drag and Drop Optimization */
+.calendar-event {
+  -webkit-user-drag: element !important;
+  user-select: none !important;
+  cursor: grab !important;
+}
+
+.calendar-event:active {
+  cursor: grabbing !important;
+}

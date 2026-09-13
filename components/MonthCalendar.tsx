@@ -137,7 +137,7 @@ export default function MonthCalendar({
     e.preventDefault();
     setDragOverDate(null);
     const eventId = e.dataTransfer.getData("application/tasktracker-event-id");
-    if (eventId && events.some((event) => event.id === eventId)) {
+    if (eventId) {
       onEventDrop?.(eventId, dateKey);
     } else {
       onExternalDrop?.(e, dateKey);
