@@ -1519,3 +1519,23 @@ html, body, .app-frame, .main-content {
     justify-content: center !important;
   }
 }
+
+/* Mobile PWA Bottom Cutoff Fix & Event List Expansion */
+@media (max-width: 760px) {
+  .app-frame, .main-content, .page-content {
+    padding-bottom: 88px !important;
+    box-sizing: border-box !important;
+  }
+
+  .calendar-shell, .calendar-events-panel, .calendar-integrations-panel, .panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .calendar-event-card-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}

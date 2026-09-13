@@ -132,7 +132,13 @@ export default function CalendarPage() {
     e.preventDefault();
     if (!draft.title.trim()) return;
     const target = events.find((item) => item.id === editingId);
-    const time = draft.time ? new Date(draft.time).toISOString() : undefined;
+    let time: string | undefined = undefined;
+    if (draft.time) {
+      const dt = new Date(`${draft.date.slice(0, 10)}T${draft.time.slice(0, 5)}:00`);
+      if (!Number.isNaN(dt.getTime())) {
+        time = dt.toISOString();
+      }
+    }
 
     // 2-Way Sync for Google events
     if (target?.provider === "Google") {
