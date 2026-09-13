@@ -29,15 +29,39 @@ export default function CalendarPage() {
   const formRef = useRef<HTMLElement>(null);
   const { notify } = useNotifications();
 
-  useEffect(() => {
-    const load = window.setTimeout(() => {
-      try {
-        setEvents(JSON.parse(localStorage.getItem("tasktracker-events") || "[]"));
-      } catch {
-        setEvents([]);
+  // Load events from database & localStorage
+  const loadEvents = async () => {
+    try {
+      const res = await fetch("/api/events");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.events && Array.isArray(data.events)) {
+          // Merge db events with local storage
+          const localStored = JSON.parse(localStorage.getItem("tasktracker-events") || "[]");
+          const map = new Map<string, EventItem>();
+          for (const e of localStored) map.set(e.id, e);
+          for (const e of data.events) map.set(e.id, e);
+          const merged = Array.from(map.values());
+          setEvents(merged);
+          localStorage.setItem("tasktracker-events", JSON.stringify(merged));
+          return;
+        }
       }
+    } catch {
+      // Fallback
+    }
+    try {
+      setEvents(JSON.parse(localStorage.getItem("tasktracker-events") || "[]"));
+    } catch {
+      setEvents([]);
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadEvents();
     }, 0);
-    return () => window.clearTimeout(load);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -104,6 +128,17 @@ export default function CalendarPage() {
       reminderMinutes: Number(draft.reminderMinutes),
     };
 
+    // Save to Database API so PWA & Extension get instant sync
+    try {
+      await fetch("/api/events", {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+    } catch {
+      // Offline fallback
+    }
+
     const next = editingId
       ? events.map((event) => (event.id === editingId ? { ...event, ...updated } : event))
       : [...events, updated];
@@ -150,6 +185,15 @@ export default function CalendarPage() {
       return;
     }
 
+    // Delete from Database API
+    try {
+      await fetch("/api/events?id=" + encodeURIComponent(event.id), {
+        method: "DELETE",
+      });
+    } catch {
+      // Offline fallback
+    }
+
     const next = events.filter((item) => item.id !== event.id);
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
@@ -192,7 +236,7 @@ export default function CalendarPage() {
     }
   }
 
-  function handleExternalDrop(e: React.DragEvent, dateKey: string) {
+  async function handleExternalDrop(e: React.DragEvent, dateKey: string) {
     e.preventDefault();
     const textData = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("text/uri-list") || "";
     const htmlData = e.dataTransfer.getData("text/html");
@@ -220,6 +264,17 @@ export default function CalendarPage() {
       provider: "Local",
       reminderMinutes: 30,
     };
+
+    // Save to database
+    try {
+      await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEvent),
+      });
+    } catch {
+      // Offline fallback
+    }
 
     const next = [...events, newEvent];
     setEvents(next);
@@ -262,6 +317,17 @@ export default function CalendarPage() {
       } catch {
         notify("Failed to reschedule in Google Calendar.", "error");
       }
+    } else {
+      // Save local move to database
+      try {
+        await fetch("/api/events", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: target.id, date: dateKey, time }),
+        });
+      } catch {
+        // Offline fallback
+      }
     }
 
     const next = events.map((event) => (event.id === eventId ? { ...event, date: dateKey, time } : event));
@@ -294,6 +360,16 @@ export default function CalendarPage() {
       const next = [...keptEvents, ...syncedEvents];
       setEvents(next);
       localStorage.setItem("tasktracker-events", JSON.stringify(next));
+
+      // Also persist synced events to Database API
+      for (const e of syncedEvents) {
+        fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(e),
+        }).catch(() => {});
+      }
+
       setMessage(provider + " calendar synced (" + syncedEvents.length + " events).");
       notify(provider + " calendar updated.", "success");
     } catch {

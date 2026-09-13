@@ -74,3 +74,38 @@ export async function deleteTask(id: string) {
   const result = await tasks().deleteOne({ id });
   return result.deletedCount > 0;
 }
+
+export type CalendarEvent = {
+  id: string;
+  userId?: string;
+  title: string;
+  date: string;
+  time?: string;
+  provider?: string;
+  location?: string;
+  reminderMinutes?: number;
+};
+
+const eventsCollection = () => db.collection<CalendarEvent>("events");
+
+export async function listCalendarEvents(userId?: string) {
+  const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+  return eventsCollection().find(query, { projection: { _id: 0 } }).sort({ date: 1 }).toArray();
+}
+
+export async function addCalendarEvent(input: Omit<CalendarEvent, "id">) {
+  const event = { ...input, id: crypto.randomUUID() };
+  await eventsCollection().insertOne(event);
+  return event;
+}
+
+export async function updateCalendarEventDb(id: string, changes: Partial<Omit<CalendarEvent, "id">>) {
+  const update: UpdateFilter<CalendarEvent> = { $set: changes };
+  const result = await eventsCollection().findOneAndUpdate({ id }, update, { returnDocument: "after", projection: { _id: 0 } });
+  return result;
+}
+
+export async function deleteCalendarEventDb(id: string) {
+  const result = await eventsCollection().deleteOne({ id });
+  return result.deletedCount > 0;
+}
