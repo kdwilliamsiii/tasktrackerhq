@@ -4,16 +4,31 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
+import {
+  LayoutDashboard,
+  CheckSquare,
+  Timer,
+  CalendarDays,
+  GraduationCap,
+  User,
+  Settings,
+  Lightbulb,
+  RotateCw,
+  Menu,
+  X,
+  ChevronDown,
+  Bell,
+} from "lucide-react";
 import SearchBar from "../../components/SearchBar";
 import { useNotifications } from "../../components/NotificationProvider";
 
 const navigation = [
-  { href: "/", label: "Overview", icon: "Ὄa" },
-  { href: "/tasks", label: "Tasks", icon: "☑" },
-  { href: "/focus", label: "Focus", icon: "⏱" },
-  { href: "/calendar", label: "Calendar", icon: "Ὄ5" },
-  { href: "/gpa", label: "GPA Tracker", icon: "Ἱ3" },
-  { href: "/profile", label: "Profile", icon: "὆4" },
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/focus", label: "Focus", icon: Timer },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
+  { href: "/gpa", label: "GPA Tracker", icon: GraduationCap },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export function AppShell({ children, active, eyebrow, title, description, action }: { children: React.ReactNode; active: string; eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
@@ -97,14 +112,14 @@ export function AppShell({ children, active, eyebrow, title, description, action
       {/* Mobile Pull To Refresh Banner */}
       {pullDistance > 0 && (
         <div className="pull-refresh-indicator" style={{ height: pullDistance + "px" }}>
-          <span>{pullDistance >= 60 ? "Release to refresh ↻" : "Pull down to refresh..."}</span>
+          <span>{pullDistance >= 60 ? "Release to refresh ?" : "Pull down to refresh..."}</span>
         </div>
       )}
 
       {/* Mobile Top Header */}
       <div className="mobile-header">
         <button type="button" className="mobile-menu-btn" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
-          ☰
+          <Menu size={20} />
         </button>
         <Link className="mobile-brand" href="/" onClick={() => setMobileNavOpen(false)}>
           <Image className="brand-logo" src="/tasktracker-logo.jpg" alt="TaskTrackerHQ logo" width={28} height={28} priority />
@@ -119,7 +134,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
             aria-label="Refresh app"
             title="Refresh TaskTrackerHQ"
           >
-            ↻
+            <RotateCw size={16} className={refreshing ? "spinning" : ""} />
           </button>
           <span className="workspace-avatar mobile-avatar">{userInitials}</span>
         </div>
@@ -133,7 +148,9 @@ export function AppShell({ children, active, eyebrow, title, description, action
             <Image className="brand-logo" src="/tasktracker-logo.jpg" alt="TaskTrackerHQ logo" width={42} height={42} priority />
             <span>TaskTrackerHQ</span>
           </Link>
-          <button type="button" className="mobile-close-btn" onClick={() => setMobileNavOpen(false)} aria-label="Close menu">✕</button>
+          <button type="button" className="mobile-close-btn" onClick={() => setMobileNavOpen(false)} aria-label="Close menu">
+            <X size={18} />
+          </button>
         </div>
         <Link className="workspace-switcher" href={session ? "/profile" : "/settings"} onClick={() => setMobileNavOpen(false)}>
           <span className="workspace-avatar">{userInitials}</span>
@@ -141,21 +158,27 @@ export function AppShell({ children, active, eyebrow, title, description, action
             <strong>{session ? userName : "Your workspace"}</strong>
             <small>{session ? "Personal workspace" : "Sign in to personalize"}</small>
           </span>
-          <span className="chevron">⌄</span>
+          <ChevronDown size={14} className="chevron" />
         </Link>
         <nav className="main-nav" aria-label="Main navigation">
           <span className="nav-label">Workspace</span>
-          {navigation.map((item) => (
-            <Link className={"nav-item" + (active === item.label ? " active" : "")} href={item.href} onClick={() => setMobileNavOpen(false)} key={item.href}>
-              <span className="nav-icon">{item.icon}</span>{item.label}
-            </Link>
-          ))}
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link className={"nav-item" + (active === item.label ? " active" : "")} href={item.href} onClick={() => setMobileNavOpen(false)} key={item.href}>
+                <Icon className="nav-icon" size={18} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
           <span className="nav-label nav-label-spaced">Manage</span>
           <Link className={"nav-item" + (active === "Settings" ? " active" : "")} href="/settings" onClick={() => setMobileNavOpen(false)}>
-            <span className="nav-icon">⚙</span>Settings
+            <Settings className="nav-icon" size={18} />
+            <span>Settings</span>
           </Link>
           <Link className={"nav-item" + (active === "Feedback" ? " active" : "")} href="/admin/feedback" onClick={() => setMobileNavOpen(false)}>
-            <span className="nav-icon">Ὂ1</span>Feedback
+            <Lightbulb className="nav-icon" size={18} />
+            <span>Feedback</span>
           </Link>
 
           <button
@@ -166,7 +189,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
               void handleRefresh();
             }}
           >
-            <span className={"nav-icon" + (refreshing ? " spinning" : "")}>↻</span>
+            <RotateCw className={"nav-icon" + (refreshing ? " spinning" : "")} size={18} />
             <span>Refresh App</span>
           </button>
         </nav>
@@ -178,7 +201,10 @@ export function AppShell({ children, active, eyebrow, title, description, action
           <div className="topbar-actions">
             <SearchBar />
             <div className="notification-menu">
-              <button className="icon-button" aria-label={unreadCount + " unread notifications"} aria-expanded={open} onClick={() => setOpen((current) => !current)}>♧{unreadCount > 0 && <span className="notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}</button>
+              <button className="icon-button" aria-label={unreadCount + " unread notifications"} aria-expanded={open} onClick={() => setOpen((current) => !current)}>
+                <Bell size={20} />
+                {unreadCount > 0 && <span className="notification-count">{unreadCount > 99 ? "99+" : unreadCount}</span>}
+              </button>
               {open && <div className="notification-panel"><div className="notification-panel-header"><strong>Notifications</strong><button type="button" onClick={markAllAsRead} disabled={!unreadCount}>Mark all read</button></div>{notifications.length ? notifications.slice().reverse().map((item) => <button className={"notification-item" + (item.read ? " is-read" : "")} key={item.id} type="button" onClick={() => markAsRead(item.id)}><span className={"notification-dot notification-dot-" + item.tone} /><span>{item.message}</span></button>) : <p className="notification-empty">No notifications yet.</p>}</div>}
             </div>
             <span className="topbar-date">{dateLabel}</span>
