@@ -1,4 +1,4 @@
-const CACHE_NAME = "tasktrackerhq-v1";
+const CACHE_NAME = "tasktrackerhq-v2";
 const STATIC_ASSETS = [
   "/",
   "/tasks",
@@ -7,7 +7,10 @@ const STATIC_ASSETS = [
   "/profile",
   "/settings",
   "/manifest.json",
-  "/tasktracker-logo.jpg"
+  "/tasktracker-logo.jpg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {
