@@ -4,7 +4,18 @@ import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import { saveUserProfile } from "./db";
 
-const admins = new Set((process.env.ADMIN_EMAILS || "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
+export const KNOWN_ADMIN_EMAILS = [
+  "kdwilliamsiii@gmail.com",
+  "kdwilliamsiii@tasktrackerhq.app",
+];
+
+export function getAdminEmails(): Set<string> {
+  const envAdmins = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set([...KNOWN_ADMIN_EMAILS.map((e) => e.toLowerCase()), ...envAdmins]);
+}
 
 async function refreshGoogleAccessToken(token: JWT): Promise<JWT> {
   try {
@@ -73,7 +84,8 @@ export const authOptions: NextAuthOptions = {
       const profilePicture = (profile as { picture?: string } | undefined)?.picture;
       if (profilePicture) token.picture = profilePicture;
       const email = token.email || (profile as { email?: string } | undefined)?.email;
-      token.role = email && admins.has(email.toLowerCase()) ? "admin" : "user";
+      const adminEmails = getAdminEmails();
+      token.role = email && adminEmails.has(email.toLowerCase()) ? "admin" : (token.role || "user");
 
       if (account) {
         const profileId = token.sub || account.providerAccountId;
@@ -102,7 +114,10 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub || "";
-        session.user.role = token.role || "user";
+        const email = token.email || session.user.email;
+        const adminEmails = getAdminEmails();
+        const isUserAdmin = email && adminEmails.has(email.toLowerCase());
+        session.user.role = isUserAdmin ? "admin" : (token.role || "user");
         session.user.provider = token.provider;
         session.user.providerAccountId = token.providerAccountId;
         session.user.createdAt = token.createdAt;
@@ -116,4 +131,10 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export function isAdmin(session: { user?: { role?: string } } | null) { return session?.user?.role === "admin"; }
+export function isAdmin(session: { user?: { role?: string; email?: string | null } } | null) {
+  if (!session?.user) return false;
+  if (session.user.role === "admin") return true;
+  const email = session.user.email;
+  if (email && getAdminEmails().has(email.toLowerCase())) return true;
+  return false;
+}

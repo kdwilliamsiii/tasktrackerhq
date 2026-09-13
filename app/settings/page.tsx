@@ -7,11 +7,14 @@ import { AppShell } from "../components/app-shell";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
 import AiUsageWidget from "../../components/AiUsageWidget";
 import Link from "next/link";
-import { Shield, FileText } from "lucide-react";
+import { Shield, FileText, Cpu, ShieldAlert } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const connectedProvider = session?.user?.provider;
+  const userEmail = (session?.user?.email || "").toLowerCase();
+  const isAdminUser = session?.user?.role === "admin" || userEmail === "kdwilliamsiii@gmail.com" || userEmail === "kdwilliamsiii@tasktrackerhq.app";
+
   const connect = (provider: "google" | "azure-ad") => signIn(provider, { callbackUrl: "/settings" });
   const disconnect = () => {
     localStorage.removeItem("tasktracker-events");
@@ -20,9 +23,38 @@ export default function SettingsPage() {
 
   return <AppShell active="Settings" eyebrow="Manage" title="Settings" description="Manage your account, preferences, and integrations.">
     <div className="settings-grid">
+      {isAdminUser && (
+        <section className="panel" style={{ gridColumn: "1 / -1", border: "1px solid rgba(224, 86, 36, 0.4)", background: "rgba(224, 86, 36, 0.05)" }}>
+          <div className="settings-heading">
+            <div>
+              <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <ShieldAlert size={20} style={{ color: "var(--orange)" }} /> Administrator Portal
+              </h2>
+              <p>You are authenticated as an administrator ({userEmail}). Access internal management consoles below.</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
+            <Link
+              href="/admin/ai-usage"
+              className="primary-button"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", padding: "8px 16px" }}
+            >
+              <Cpu size={16} /> AI Intelligence &amp; Usage Dashboard
+            </Link>
+            <Link
+              href="/admin/feedback"
+              className="filter-button"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", padding: "8px 16px" }}
+            >
+              Feedback Moderation
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <div className="settings-heading"><div><h2>Account</h2><p>Manage your TaskTrackerHQ account.</p></div></div>
-        <div className="account-summary">{session?.user?.image ? <Image className="account-avatar account-avatar-image" src={session.user.image} alt="" width={38} height={38} /> : <span className="account-avatar">{session?.user?.name?.slice(0, 1).toUpperCase() || "?"}</span>}<div><strong>{status === "loading" ? "Checking session..." : session?.user?.name || "Guest user"}</strong><small>{session?.user?.email || "Not signed in"}</small></div>{session && <span className={"role-badge role-" + session.user.role}>{session.user.role}</span>}</div>
+        <div className="account-summary">{session?.user?.image ? <Image className="account-avatar account-avatar-image" src={session.user.image} alt="" width={38} height={38} /> : <span className="account-avatar">{session?.user?.name?.slice(0, 1).toUpperCase() || "?"}</span>}<div><strong>{status === "loading" ? "Checking session..." : session?.user?.name || "Guest user"}</strong><small>{session?.user?.email || "Not signed in"}</small></div>{session && <span className={"role-badge role-" + (isAdminUser ? "admin" : session.user.role)}>{isAdminUser ? "admin" : session.user.role}</span>}</div>
         {session && <dl className="account-details"><div><dt>User ID</dt><dd>{session.user.id || "Unavailable"}</dd></div><div><dt>Provider</dt><dd>{connectedProvider === "azure-ad" ? "Microsoft" : "Google"}</dd></div><div><dt>Account created</dt><dd>{session.user.createdAt ? new Date(session.user.createdAt).toLocaleDateString() : "Available after next sign-in"}</dd></div></dl>}
         <p className="panel-subtitle">{session ? ("Connected through " + (connectedProvider === "azure-ad" ? "Microsoft" : "Google") + ".") : "Development mode remains available without OAuth."}</p>
         {session ? <button className="primary-button" onClick={() => void signOut({ callbackUrl: "/" })}>Sign out</button> : <SignInButtons callbackUrl="/settings" />}

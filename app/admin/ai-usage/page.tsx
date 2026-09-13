@@ -88,6 +88,8 @@ export default function AdminAiUsageDashboard() {
   const [filterTier, setFilterTier] = useState<string>("all");
   const [filterAbuseOnly, setFilterAbuseOnly] = useState(false);
   const { notify } = useNotifications();
+  const userEmail = (session?.user?.email || "").toLowerCase();
+  const isUserAdmin = session?.user?.role === "admin" || userEmail === "kdwilliamsiii@gmail.com" || userEmail === "kdwilliamsiii@tasktrackerhq.app";
 
   const fetchData = async () => {
     setLoading(true);
@@ -106,10 +108,10 @@ export default function AdminAiUsageDashboard() {
   };
 
   useEffect(() => {
-    if (session?.user?.role === "admin") {
+    if (isUserAdmin) {
       fetchData();
     }
-  }, [session]);
+  }, [session, isUserAdmin]);
 
   if (sessionStatus === "loading") {
     return (
@@ -119,7 +121,7 @@ export default function AdminAiUsageDashboard() {
     );
   }
 
-  if (!session || session.user.role !== "admin") {
+  if (!session || !isUserAdmin) {
     redirect("/");
   }
 

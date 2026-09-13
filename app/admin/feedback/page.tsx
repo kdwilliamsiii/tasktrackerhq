@@ -15,8 +15,11 @@ export default function FeedbackReviewPage() {
   const [loading, setLoading] = useState(false);
   const { notify } = useNotifications();
 
+  const userEmail = (session?.user?.email || "").toLowerCase();
+  const isUserAdmin = session?.user?.role === "admin" || userEmail === "kdwilliamsiii@gmail.com" || userEmail === "kdwilliamsiii@tasktrackerhq.app";
+
   useEffect(() => {
-    if (session?.user?.role !== "admin") return;
+    if (!isUserAdmin) return;
     const request = window.setTimeout(() => {
       setLoading(true);
       fetch("/api/suggestions").then((response) => {
@@ -25,10 +28,10 @@ export default function FeedbackReviewPage() {
       }).then(setSuggestions).catch(() => setError("Unable to load suggestions.")).finally(() => setLoading(false));
     }, 0);
     return () => window.clearTimeout(request);
-  }, [session]);
+  }, [isUserAdmin]);
 
   if (sessionStatus === "loading") return <AppShell active="Feedback" eyebrow="Administration" title="Suggestion Review" description="Review and moderate feature requests submitted by your users."><p>Checking access...</p></AppShell>;
-  if (!session || session.user.role !== "admin") redirect("/");
+  if (!session || !isUserAdmin) redirect("/");
 
   async function update(id: string, status: AdminSuggestion["status"]) {
     const response = await fetch("/api/admin/feedback", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status }) });

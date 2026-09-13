@@ -112,6 +112,9 @@ export function AppShell({ children, active, eyebrow, title, description, action
     touchStartY.current = null;
   };
 
+  const userEmail = (session?.user?.email || "").toLowerCase();
+  const isAdminUser = session?.user?.role === "admin" || userEmail === "kdwilliamsiii@gmail.com" || userEmail === "kdwilliamsiii@tasktrackerhq.app";
+
   return (
     <div
       className="app-frame"
@@ -219,7 +222,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
             <Lightbulb className="nav-icon" size={18} />
             <span>Feedback</span>
           </Link>
-          {session?.user?.role === "admin" && (
+          {isAdminUser && (
             <Link className={"nav-item" + (active === "AI Intelligence" ? " active" : "")} href="/admin/ai-usage" onClick={() => setMobileNavOpen(false)}>
               <Cpu className="nav-icon" size={18} />
               <span>AI Intelligence</span>
