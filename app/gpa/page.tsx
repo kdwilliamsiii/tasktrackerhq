@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
@@ -11,7 +11,8 @@ type CourseClass = {
   code: string;
   credits: number;
   pointsEarned: number;
-  pointsPossible: number;
+  currentPossible: number;
+  totalPossible: number;
 };
 
 type ClassDraft = {
@@ -19,7 +20,8 @@ type ClassDraft = {
   code: string;
   credits: string;
   pointsEarned: string;
-  pointsPossible: string;
+  currentPossible: string;
+  totalPossible: string;
 };
 
 const emptyDraft: ClassDraft = {
@@ -27,7 +29,8 @@ const emptyDraft: ClassDraft = {
   code: "",
   credits: "3",
   pointsEarned: "",
-  pointsPossible: "",
+  currentPossible: "",
+  totalPossible: "",
 };
 
 function getLetterGrade(percentage: number): { letter: string; gpaPoints: number } {
@@ -45,17 +48,29 @@ function getLetterGrade(percentage: number): { letter: string; gpaPoints: number
 }
 
 export default function GpaPage() {
+  const formRef = useRef<HTMLElement>(null);
   const [classes, setClasses] = useState<CourseClass[]>(() => {
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("tasktracker-gpa-classes");
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Record<string, unknown>[];
+          return parsed.map((item) => ({
+            id: String(item.id || crypto.randomUUID()),
+            name: String(item.name || "Untitled Class"),
+            code: String(item.code || "COURSE"),
+            credits: Number(item.credits) || 3,
+            pointsEarned: Number(item.pointsEarned) || 0,
+            currentPossible: Number(item.currentPossible ?? item.pointsPossible) || 100,
+            totalPossible: Number(item.totalPossible ?? item.pointsPossible) || 100,
+          }));
+        }
       } catch {
         // Fallback
       }
       return [
-        { id: crypto.randomUUID(), name: "Intro to Computer Science", code: "CS 101", credits: 3, pointsEarned: 460, pointsPossible: 500 },
-        { id: crypto.randomUUID(), name: "Academic Writing", code: "WRTG 111", credits: 3, pointsEarned: 380, pointsPossible: 400 },
+        { id: crypto.randomUUID(), name: "Intro to Computer Science", code: "CS 101", credits: 3, pointsEarned: 270, currentPossible: 300, totalPossible: 500 },
+        { id: crypto.randomUUID(), name: "Academic Writing", code: "WRTG 111", credits: 3, pointsEarned: 190, currentPossible: 200, totalPossible: 400 },
       ];
     }
     return [];
@@ -84,9 +99,11 @@ export default function GpaPage() {
       code: item.code,
       credits: String(item.credits),
       pointsEarned: String(item.pointsEarned),
-      pointsPossible: String(item.pointsPossible),
+      currentPossible: String(item.currentPossible),
+      totalPossible: String(item.totalPossible),
     });
     setError("");
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function resetDraft() {
@@ -103,10 +120,11 @@ export default function GpaPage() {
     }
     const credits = Number(draft.credits) || 0;
     const pointsEarned = Number(draft.pointsEarned) || 0;
-    const pointsPossible = Number(draft.pointsPossible) || 0;
+    const currentPossible = Number(draft.currentPossible) || pointsEarned || 0;
+    const totalPossible = Number(draft.totalPossible) || currentPossible || 0;
 
-    if (pointsPossible <= 0) {
-      setError("Total possible points must be greater than 0.");
+    if (currentPossible <= 0 && totalPossible <= 0) {
+      setError("Points possible must be greater than 0.");
       return;
     }
     if (pointsEarned < 0) {
@@ -120,7 +138,8 @@ export default function GpaPage() {
       code: draft.code.trim().toUpperCase() || "COURSE",
       credits: credits > 0 ? credits : 3,
       pointsEarned,
-      pointsPossible,
+      currentPossible: currentPossible > 0 ? currentPossible : totalPossible,
+      totalPossible: totalPossible > 0 ? totalPossible : currentPossible,
     };
 
     const next = editingId
@@ -142,76 +161,77 @@ export default function GpaPage() {
     notify("Class deleted.", "info");
   }
 
- // Calculate Cumulative GPA with useMemo
-  const { evaluatedClasses, cumulativeGpa, overallPercentage, overallEarnedPoints, overallPossiblePoints, totalCredits } = useMemo(() => {
+  // Calculate Cumulative Current GPA & Total Course Stats
+  const { evaluatedClasses, currentGpa, currentPercentage, totalEarnedPoints, totalCurrentPossible, totalCredits } = useMemo(() => {
     let qPointsSum = 0;
     let creditsSum = 0;
     let earnedSum = 0;
-    let possibleSum = 0;
+    let currentPossibleSum = 0;
 
     const list = classes.map((item) => {
-      const pct = item.pointsPossible > 0 ? (item.pointsEarned / item.pointsPossible) * 100 : 0;
-      const { letter, gpaPoints } = getLetterGrade(pct);
+      // Calculate current percentage based on points graded so far
+      const currentPct = item.currentPossible > 0 ? (item.pointsEarned / item.currentPossible) * 100 : 0;
+      const { letter, gpaPoints } = getLetterGrade(currentPct);
       const qualityPoints = gpaPoints * item.credits;
 
-      return { item, pct, letter, gpaPoints, qualityPoints };
+      return { item, currentPct, letter, gpaPoints, qualityPoints };
     });
 
     for (const entry of list) {
       qPointsSum += entry.qualityPoints;
       creditsSum += entry.item.credits;
       earnedSum += entry.item.pointsEarned;
-      possibleSum += entry.item.pointsPossible;
+      currentPossibleSum += entry.item.currentPossible;
     }
 
     const evaluated = list.map((entry) => ({
       ...entry.item,
-      percentage: entry.pct,
+      currentPercentage: entry.currentPct,
       letter: entry.letter,
       gpaPoints: entry.gpaPoints,
     }));
 
     const gpaVal = creditsSum > 0 ? (qPointsSum / creditsSum).toFixed(2) : "0.00";
-    const pctVal = possibleSum > 0 ? ((earnedSum / possibleSum) * 100).toFixed(1) : "0.0";
+    const pctVal = currentPossibleSum > 0 ? ((earnedSum / currentPossibleSum) * 100).toFixed(1) : "0.0";
 
     return {
       evaluatedClasses: evaluated,
-      cumulativeGpa: gpaVal,
-      overallPercentage: pctVal,
-      overallEarnedPoints: earnedSum,
-      overallPossiblePoints: possibleSum,
+      currentGpa: gpaVal,
+      currentPercentage: pctVal,
+      totalEarnedPoints: earnedSum,
+      totalCurrentPossible: currentPossibleSum,
       totalCredits: creditsSum,
     };
   }, [classes]);
 
   return (
-    <AppShell active="GPA Tracker" eyebrow="Workspace" title="GPA Tracker" description="Track your class points, letter grades, and overall GPA automatically.">
+    <AppShell active="GPA Tracker" eyebrow="Workspace" title="GPA Tracker" description="Track points graded so far vs. total course points to stay on top of your current GPA.">
       <div className="gpa-summary-hero">
         <div className="gpa-main-stat">
-          <span className="gpa-kicker">CUMULATIVE GPA</span>
-          <h2>{cumulativeGpa}</h2>
+          <span className="gpa-kicker">CURRENT CUMULATIVE GPA</span>
+          <h2>{currentGpa}</h2>
           <p>{totalCredits} total credit hours across {classes.length} class{classes.length === 1 ? "" : "es"}</p>
         </div>
         <div className="gpa-stats-divider" />
         <div className="gpa-sub-stats">
           <div>
-            <strong>{overallPercentage}%</strong>
-            <span>Overall Course Average</span>
+            <strong>{currentPercentage}%</strong>
+            <span>Current Average (Graded)</span>
           </div>
           <div>
-            <strong>{overallEarnedPoints} / {overallPossiblePoints}</strong>
-            <span>Total Points Earned</span>
+            <strong>{totalEarnedPoints} / {totalCurrentPossible}</strong>
+            <span>Points Earned so far</span>
           </div>
         </div>
       </div>
 
-      <TTBotHint command="What is my current GPA?">TT Bot can analyze your course points and suggest which classes need attention.</TTBotHint>
+      <TTBotHint command="What is my current GPA?">TT Bot can analyze your current graded points and calculate your live GPA.</TTBotHint>
 
-      <section className="panel task-manager-form">
+      <section className="panel task-manager-form" ref={formRef}>
         <div className="panel-header">
           <div>
-            <h2>{editingId ? "Edit class" : "Add a class"}</h2>
-            <p>{editingId ? "Update your class details and grade points." : "Enter class name, total points possible, and points earned."}</p>
+            <h2>{editingId ? "Edit class details" : "Add a class"}</h2>
+            <p>{editingId ? "Update your points earned, current points possible, or total points." : "Enter class name, points earned so far, current possible points, and total course points."}</p>
           </div>
           {editingId && (
             <button className="text-button" type="button" onClick={resetDraft}>
@@ -250,25 +270,37 @@ export default function GpaPage() {
             />
           </label>
           <label className="task-field">
-            Points earned
+            Points earned so far
             <input
               type="number"
               step="any"
               min="0"
               value={draft.pointsEarned}
               onChange={(e) => updateDraft("pointsEarned", e.target.value)}
-              placeholder="e.g. 450"
+              placeholder="e.g. 270"
               required
             />
           </label>
           <label className="task-field">
-            Total points possible
+            Current possible points (Graded)
             <input
               type="number"
               step="any"
               min="1"
-              value={draft.pointsPossible}
-              onChange={(e) => updateDraft("pointsPossible", e.target.value)}
+              value={draft.currentPossible}
+              onChange={(e) => updateDraft("currentPossible", e.target.value)}
+              placeholder="e.g. 300"
+              required
+            />
+          </label>
+          <label className="task-field">
+            Total course points (Full term)
+            <input
+              type="number"
+              step="any"
+              min="1"
+              value={draft.totalPossible}
+              onChange={(e) => updateDraft("totalPossible", e.target.value)}
               placeholder="e.g. 500"
               required
             />
@@ -302,11 +334,12 @@ export default function GpaPage() {
                     <span className="gpa-course-code">{item.code} ({item.credits} cr)</span>
                   </div>
                   <div className="gpa-progress-bar">
-                    <span style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }} />
+                    <span style={{ width: `${Math.min(100, Math.max(0, item.currentPercentage))}%` }} />
                   </div>
                   <div className="gpa-class-meta">
-                    <span>Points: <b>{item.pointsEarned} / {item.pointsPossible}</b></span>
-                    <span>Score: <b>{item.percentage.toFixed(1)}%</b></span>
+                    <span>Graded so far: <b>{item.pointsEarned} / {item.currentPossible}</b></span>
+                    <span>Current Score: <b>{item.currentPercentage.toFixed(1)}%</b></span>
+                    <span>Term Total: <b>{item.totalPossible} pts</b></span>
                   </div>
                 </div>
                 <div className="task-row-actions">
