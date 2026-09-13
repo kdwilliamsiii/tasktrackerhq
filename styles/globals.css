@@ -1539,3 +1539,128 @@ html, body, .app-frame, .main-content {
     overflow-y: visible !important;
   }
 }
+
+/* Mobile PWA Zero-Cutoff Screen Fit for Calendar Page */
+@media (max-width: 860px) {
+  html, body, .app-frame, .main-content {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .page-content {
+    padding: 14px 10px 110px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+  }
+
+  .page-heading {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .page-heading h1 {
+    font-size: 22px !important;
+  }
+
+  .page-heading .primary-button {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .panel, .calendar-shell, .calendar-panel, .calendar-events-panel, .calendar-integrations-panel, .calendar-sections-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 12px 10px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .calendar-panel {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 6px 2px !important;
+  }
+
+  .calendar-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 2px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .calendar-weekdays {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 2px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+  }
+
+  .calendar-weekdays span {
+    padding: 6px 1px !important;
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+  }
+
+  .calendar-cell {
+    min-height: 48px !important;
+    padding: 2px 1px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .calendar-cell .date-number {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 9px !important;
+    padding: 1px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .calendar-event {
+    font-size: 8px !important;
+    padding: 1px 2px !important;
+    margin-top: 1px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+  }
+
+  .calendar-footer {
+    padding: 10px 4px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .calendar-trash-zone {
+    width: 100% !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .calendar-event-card-list {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+  }
+
+  .event-list-card {
+    padding: 10px 12px !important;
+  }
+}
