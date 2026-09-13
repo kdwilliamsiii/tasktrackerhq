@@ -36,14 +36,14 @@ export default function CalendarPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.events && Array.isArray(data.events)) {
-          // Merge db events with local storage
-          const localStored = JSON.parse(localStorage.getItem("tasktracker-events") || "[]");
           const map = new Map<string, EventItem>();
-          for (const e of localStored) map.set(e.id, e);
-          for (const e of data.events) map.set(e.id, e);
-          const merged = Array.from(map.values());
-          setEvents(merged);
-          localStorage.setItem("tasktracker-events", JSON.stringify(merged));
+          for (const e of data.events) {
+            const key = (e.provider || "Local") + "-" + e.id;
+            map.set(key, e);
+          }
+          const uniqueList = Array.from(map.values());
+          setEvents(uniqueList);
+          localStorage.setItem("tasktracker-events", JSON.stringify(uniqueList));
           return;
         }
       }
@@ -361,14 +361,7 @@ export default function CalendarPage() {
       setEvents(next);
       localStorage.setItem("tasktracker-events", JSON.stringify(next));
 
-      // Also persist synced events to Database API
-      for (const e of syncedEvents) {
-        fetch("/api/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(e),
-        }).catch(() => {});
-      }
+
 
       setMessage(provider + " calendar synced (" + syncedEvents.length + " events).");
       notify(provider + " calendar updated.", "success");

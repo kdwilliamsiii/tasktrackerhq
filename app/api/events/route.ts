@@ -51,6 +51,7 @@ export async function POST(request: Request) {
     date: body.date || new Date().toISOString().slice(0, 10),
     time: body.time || "",
     provider: body.provider || "Local",
+    id: body.id,
     reminderMinutes: Number(body.reminderMinutes) || 30,
   });
 

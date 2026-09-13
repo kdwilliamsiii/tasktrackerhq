@@ -93,7 +93,13 @@ export async function listCalendarEvents(userId?: string) {
   return eventsCollection().find(query, { projection: { _id: 0 } }).sort({ date: 1 }).toArray();
 }
 
-export async function addCalendarEvent(input: Omit<CalendarEvent, "id">) {
+export async function addCalendarEvent(input: CalendarEvent) {
+  const event = { ...input, id: input.id || crypto.randomUUID() };
+  await eventsCollection().updateOne({ id: event.id }, { $set: event }, { upsert: true });
+  return event;
+}
+
+export async function addCalendarEventNew(input: Omit<CalendarEvent, "id">) {
   const event = { ...input, id: crypto.randomUUID() };
   await eventsCollection().insertOne(event);
   return event;
