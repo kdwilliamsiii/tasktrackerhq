@@ -48,7 +48,11 @@ export default function ThemeCustomizer() {
             <button className={`font-choice ${font.id === choice.id ? "selected" : ""}`} type="button" key={choice.id} onClick={() => setFont(choice)} style={{ fontFamily: choice.family }} aria-pressed={font.id === choice.id}>{choice.name}</button>
           ))}
         </div>
-        <label className="color-control font-color-control"><input type="color" value={colors.foreground} onChange={(event) => updateColor("foreground", event.target.value)} /><span>Font color</span><code>{colors.foreground}</code></label>
+        <div className="font-color-controls" style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "12px" }}>
+          <label className="color-control font-color-control"><input type="color" value={colors.foreground} onChange={(event) => updateColor("foreground", event.target.value)} /><span>Main font color</span><code>{colors.foreground}</code></label>
+          <label className="color-control font-color-control"><input type="color" value={colors.sidebarText || "#17283d"} onChange={(event) => updateColor("sidebarText", event.target.value)} /><span>Sidebar font color</span><code>{colors.sidebarText || "#17283d"}</code></label>
+          <label className="color-control font-color-control"><input type="color" value={colors.topbarText || "#344258"} onChange={(event) => updateColor("topbarText", event.target.value)} /><span>Topbar font color</span><code>{colors.topbarText || "#344258"}</code></label>
+        </div>
         <div className="bar-font-settings">
           <label>Sidebar font<select value={sidebarFont.id} onChange={(event) => setSidebarFont(fontChoices.find((choice) => choice.id === event.target.value) || fontChoices[0])}>{fontChoices.map((choice) => <option value={choice.id} key={choice.id}>{choice.name}</option>)}</select></label>
           <label>Top bar font<select value={topbarFont.id} onChange={(event) => setTopbarFont(fontChoices.find((choice) => choice.id === event.target.value) || fontChoices[0])}>{fontChoices.map((choice) => <option value={choice.id} key={choice.id}>{choice.name}</option>)}</select></label>
