@@ -411,3 +411,42 @@ body {
     min-height: 42px;
   }
 }
+
+/* Polish enhancements for draggable cards and mobile responsiveness */
+.task-row-card[draggable="true"], .dashboard-task[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.task-row-card[draggable="true"]:active, .dashboard-task[draggable="true"]:active {
+  cursor: grabbing;
+  transform: scale(0.99);
+  opacity: 0.85;
+}
+
+@media (max-width: 860px) {
+  /* Task form adjustments for mobile */
+  .task-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .task-field-wide {
+    grid-column: span 1 !important;
+  }
+  .task-save {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Filter tabs scrollable on small screens */
+  .filter-tabs {
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
