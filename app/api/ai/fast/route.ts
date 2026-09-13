@@ -1,25 +1,33 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
+import { recordAiUsage } from "../../../../lib/db";
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      // Allow fast micro-assistant suggestions for authenticated or local sessions
-    }
+    const userId = session?.user?.id || "anonymous";
 
-    const { prompt, model } = await req.json();
+    const { prompt, model, feature = "fast" } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json({ error: "Missing or invalid prompt" }, { status: 400 });
     }
 
+    const requestedModel = model ?? "o3-mini";
     const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
-      return NextResponse.json({
-        reply: prompt.trim().replace(/^(make this clearer|shorten this|rewrite):\s*/i, "").slice(0, 100),
+      const reply = prompt.trim().replace(/^(make this clearer|shorten this|rewrite):\s*/i, "").slice(0, 100);
+      await recordAiUsage({
+        userId,
+        model: requestedModel,
+        feature,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
       });
+      return NextResponse.json({ reply });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -29,7 +37,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: model ?? "gpt-4o-mini",
+        model: requestedModel === "o3-mini" ? "gpt-4o-mini" : requestedModel,
         messages: [
           {
             role: "system",
@@ -51,8 +59,18 @@ export async function POST(req: Request) {
 
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "";
+    const tokensIn = data.usage?.prompt_tokens ?? 0;
+    const tokensOut = data.usage?.completion_tokens ?? 0;
 
-    return NextResponse.json({ reply });
+    await recordAiUsage({
+      userId,
+      model: requestedModel,
+      feature,
+      tokensIn,
+      tokensOut,
+    });
+
+    return NextResponse.json({ reply, tokensIn, tokensOut });
   } catch (error) {
     console.error("Fast AI error:", error);
     return NextResponse.json({ error: "Internal server error during fast AI call" }, { status: 500 });

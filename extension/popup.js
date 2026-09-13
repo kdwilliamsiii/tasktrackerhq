@@ -62,7 +62,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           credentials: "include",
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: `Make this task title clearer, actionable, and concise: "${current}"` })
+          body: JSON.stringify({
+            prompt: `Make this task title clearer, actionable, and concise: "${current}"`,
+            feature: "extension"
+          })
         });
         if (res.ok) {
           const data = await res.json();

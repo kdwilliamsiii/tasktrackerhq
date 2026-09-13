@@ -1,25 +1,33 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
+import { recordAiUsage } from "../../../../lib/db";
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      // Allow advanced planning or return 401 if strict auth is required
-    }
+    const userId = session?.user?.id || "anonymous";
 
-    const { prompt, model } = await req.json();
+    const { prompt, model, feature = "advanced" } = await req.json();
 
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json({ error: "Missing or invalid prompt" }, { status: 400 });
     }
 
+    const requestedModel = model ?? "gpt-4.1";
     const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
-      return NextResponse.json({
-        reply: `[Advanced Plan Preview] Based on your request: "${prompt.slice(0, 80)}..."\n\n1. Phase 1: High-priority assessment\n2. Phase 2: Actionable time blocks\n3. Phase 3: Review and wrap-up`,
+      const reply = `[Advanced Plan Preview] Based on your request: "${prompt.slice(0, 80)}..."\n\n1. Phase 1: High-priority assessment\n2. Phase 2: Actionable time blocks\n3. Phase 3: Review and wrap-up`;
+      await recordAiUsage({
+        userId,
+        model: requestedModel,
+        feature,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
       });
+      return NextResponse.json({ reply });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -29,7 +37,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: model ?? "gpt-4o",
+        model: requestedModel === "gpt-4.1" ? "gpt-4o" : requestedModel,
         messages: [
           {
             role: "system",
@@ -51,8 +59,18 @@ export async function POST(req: Request) {
 
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "";
+    const tokensIn = data.usage?.prompt_tokens ?? 0;
+    const tokensOut = data.usage?.completion_tokens ?? 0;
 
-    return NextResponse.json({ reply });
+    await recordAiUsage({
+      userId,
+      model: requestedModel,
+      feature,
+      tokensIn,
+      tokensOut,
+    });
+
+    return NextResponse.json({ reply, tokensIn, tokensOut });
   } catch (error) {
     console.error("Advanced AI error:", error);
     return NextResponse.json({ error: "Internal server error during advanced AI call" }, { status: 500 });

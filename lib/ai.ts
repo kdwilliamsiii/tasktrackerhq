@@ -22,7 +22,26 @@ export function getRuntimeProfile() {
 
 export type AiMode = "fast" | "advanced";
 
-export async function runGeminiNano(prompt: string): Promise<string> {
+export async function trackAiUsageClient(data: {
+  model: string;
+  feature: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  costUsd?: number;
+}) {
+  try {
+    await fetch("/api/ai/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch (e) {
+    // Non-blocking telemetry
+    console.warn("Could not record AI usage telemetry:", e);
+  }
+}
+
+export async function runGeminiNano(prompt: string, feature: string = "fast"): Promise<string> {
   const win = window as unknown as {
     ai?: {
       languageModel?: {
@@ -36,6 +55,14 @@ export async function runGeminiNano(prompt: string): Promise<string> {
     const session = await win.ai.languageModel.create();
     try {
       const result = await session.prompt(prompt);
+      // Track Gemini Nano local execution (zero tokens, zero cost, increment count)
+      void trackAiUsageClient({
+        model: "gemini-nano",
+        feature,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
+      });
       return result;
     } finally {
       if (session.destroy) session.destroy();
@@ -45,26 +72,26 @@ export async function runGeminiNano(prompt: string): Promise<string> {
   throw new Error("Gemini Nano / Window AI is not available on this device.");
 }
 
-export async function callAiAssistant(prompt: string, mode: AiMode, userTier: "free" | "paid" = "free") {
+export async function callAiAssistant(prompt: string, mode: AiMode, userTier: "free" | "paid" = "free", feature: string = "fast") {
   const runtime = getRuntimeProfile();
 
   if (mode === "fast") {
     if (runtime.supportsNano) {
       try {
         // Gemini Nano (on-device)
-        return await runGeminiNano(prompt);
+        return await runGeminiNano(prompt, feature);
       } catch {
         // Fallback to cloud fast endpoint if local execution fails
-        return await callBackend("/api/ai/fast", { prompt, model: "o3-mini" });
+        return await callBackend("/api/ai/fast", { prompt, model: "o3-mini", feature });
       }
     } else {
       // Fallback to cheap cloud model
-      return await callBackend("/api/ai/fast", { prompt, model: "o3-mini" });
+      return await callBackend("/api/ai/fast", { prompt, model: "o3-mini", feature });
     }
   }
 
   // Advanced mode → always backend GPT-4.1 / advanced model
-  return await callBackend("/api/ai/advanced", { prompt, model: "gpt-4.1", userTier });
+  return await callBackend("/api/ai/advanced", { prompt, model: "gpt-4.1", userTier, feature: feature === "fast" ? "advanced" : feature });
 }
 
 async function callBackend(path: string, body: Record<string, unknown>) {

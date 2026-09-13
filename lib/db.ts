@@ -167,3 +167,109 @@ export async function deleteGpaClassDb(id: string) {
   const result = await gpaClassesCollection().deleteOne({ id });
   return result.deletedCount > 0;
 }
+
+export type AiUsageLog = {
+  id: string;
+  userId: string;
+  model: string; // e.g. "gemini-nano", "o3-mini", "gpt-4.1", "gpt-4o", "gpt-4o-mini"
+  feature: string; // e.g. "fast", "advanced", "tt-bot", "extension", "task-rewrite"
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+  createdAt: string;
+};
+
+const aiUsageCollection = () => db.collection<AiUsageLog>("ai_usage");
+
+export function calculateAiCost(model: string, tokensIn: number, tokensOut: number): number {
+  const m = model.toLowerCase();
+  if (m.includes("nano")) {
+    // Gemini Nano on-device has zero token cost
+    return 0;
+  }
+  if (m.includes("o3-mini")) {
+    // $1.10 / 1M prompt tokens, $4.40 / 1M completion tokens
+    return Number(((tokensIn * 1.10 + tokensOut * 4.40) / 1_000_000).toFixed(6));
+  }
+  if (m.includes("gpt-4.1") || m.includes("gpt-4o") || m.includes("gpt-4")) {
+    if (m.includes("mini")) {
+      // $0.15 / 1M prompt tokens, $0.60 / 1M completion tokens
+      return Number(((tokensIn * 0.15 + tokensOut * 0.60) / 1_000_000).toFixed(6));
+    }
+    // $2.50 / 1M prompt tokens, $10.00 / 1M completion tokens
+    return Number(((tokensIn * 2.50 + tokensOut * 10.00) / 1_000_000).toFixed(6));
+  }
+  // Default estimate ($0.50 / $1.50 per 1M tokens)
+  return Number(((tokensIn * 0.50 + tokensOut * 1.50) / 1_000_000).toFixed(6));
+}
+
+export async function recordAiUsage(entry: {
+  userId?: string | null;
+  model: string;
+  feature: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  costUsd?: number;
+  createdAt?: string;
+}): Promise<AiUsageLog> {
+  const tokensIn = entry.tokensIn || 0;
+  const tokensOut = entry.tokensOut || 0;
+  const costUsd = typeof entry.costUsd === "number" ? entry.costUsd : calculateAiCost(entry.model, tokensIn, tokensOut);
+
+  const log: AiUsageLog = {
+    id: crypto.randomUUID(),
+    userId: entry.userId || "anonymous",
+    model: entry.model,
+    feature: entry.feature,
+    tokensIn,
+    tokensOut,
+    costUsd,
+    createdAt: entry.createdAt || new Date().toISOString(),
+  };
+
+  try {
+    await aiUsageCollection().insertOne(log);
+  } catch (err) {
+    console.error("Failed to insert AI usage log:", err);
+  }
+
+  return log;
+}
+
+export async function listAiUsage(userId?: string, limit = 100): Promise<AiUsageLog[]> {
+  const query = userId && userId !== "anonymous" ? { userId } : {};
+  return aiUsageCollection().find(query, { projection: { _id: 0 } }).sort({ createdAt: -1 }).limit(limit).toArray();
+}
+
+export async function getAiUsageSummary(userId?: string) {
+  const query = userId && userId !== "anonymous" ? { userId } : {};
+  const logs = await aiUsageCollection().find(query, { projection: { _id: 0 } }).toArray();
+
+  const summary = {
+    totalRequests: logs.length,
+    totalTokensIn: logs.reduce((sum, l) => sum + (l.tokensIn || 0), 0),
+    totalTokensOut: logs.reduce((sum, l) => sum + (l.tokensOut || 0), 0),
+    totalCostUsd: Number(logs.reduce((sum, l) => sum + (l.costUsd || 0), 0).toFixed(6)),
+    byModel: {} as Record<string, { count: number; costUsd: number; tokensIn: number; tokensOut: number }>,
+    byFeature: {} as Record<string, { count: number; costUsd: number }>,
+  };
+
+  for (const log of logs) {
+    if (!summary.byModel[log.model]) {
+      summary.byModel[log.model] = { count: 0, costUsd: 0, tokensIn: 0, tokensOut: 0 };
+    }
+    summary.byModel[log.model].count += 1;
+    summary.byModel[log.model].costUsd = Number((summary.byModel[log.model].costUsd + (log.costUsd || 0)).toFixed(6));
+    summary.byModel[log.model].tokensIn += log.tokensIn || 0;
+    summary.byModel[log.model].tokensOut += log.tokensOut || 0;
+
+    if (!summary.byFeature[log.feature]) {
+      summary.byFeature[log.feature] = { count: 0, costUsd: 0 };
+    }
+    summary.byFeature[log.feature].count += 1;
+    summary.byFeature[log.feature].costUsd = Number((summary.byFeature[log.feature].costUsd + (log.costUsd || 0)).toFixed(6));
+  }
+
+  return summary;
+}
+

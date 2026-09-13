@@ -5,6 +5,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { AppShell } from "../components/app-shell";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
+import AiUsageWidget from "../../components/AiUsageWidget";
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
@@ -74,6 +75,7 @@ export default function SettingsPage() {
           </ol>
         </div>
       </section>
+      <AiUsageWidget />
       <NotificationSettings />
       <ThemeCustomizer />
     </div>

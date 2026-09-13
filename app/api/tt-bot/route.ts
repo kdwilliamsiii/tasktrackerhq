@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, isAdmin } from "../../../lib/auth";
-import { addTask, listTasks, listCalendarEvents, listGpaClasses, addCalendarEvent } from "../../../lib/db";
+import { addTask, listTasks, listCalendarEvents, listGpaClasses, addCalendarEvent, recordAiUsage } from "../../../lib/db";
 import { db } from "../../../lib/db";
 
 function getCorsHeaders(request: Request) {
@@ -30,8 +30,9 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-async function askOpenAI(message: string, context: string) {
+async function askOpenAI(message: string, context: string, userId?: string) {
   const apiKey = process.env.OPENAI_API_KEY;
+  const chosenModel = process.env.OPENAI_MODEL || "gpt-4.1";
   if (!apiKey) return null;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -41,7 +42,7 @@ async function askOpenAI(message: string, context: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4.1",
+      model: chosenModel === "gpt-4.1" ? "gpt-4o" : chosenModel,
       temperature: 0.4,
       max_tokens: 1000,
       messages: [
@@ -68,7 +69,22 @@ async function askOpenAI(message: string, context: string) {
     throw new Error(`OpenAI request failed with status ${response.status}`);
   }
 
-  const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
+  };
+
+  const tokensIn = data.usage?.prompt_tokens ?? 0;
+  const tokensOut = data.usage?.completion_tokens ?? 0;
+
+  await recordAiUsage({
+    userId: userId || "anonymous",
+    model: chosenModel,
+    feature: "tt-bot",
+    tokensIn,
+    tokensOut,
+  });
+
   return data.choices?.[0]?.message?.content?.trim() || null;
 }
 
@@ -146,7 +162,7 @@ export async function POST(request: Request) {
   });
 
   try {
-    const reply = await askOpenAI(message, context);
+    const reply = await askOpenAI(message, context, userId);
     if (reply) return jsonResponse(request, { reply });
   } catch (error) {
     console.error("TT Bot AI request failed", error);
