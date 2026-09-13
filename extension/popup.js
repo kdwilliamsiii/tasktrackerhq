@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById(tabId).classList.add("active");
 
       if (tabId === "tab-tasks") loadTasks();
+      if (tabId === "tab-calendar") loadEvents();
     });
   });
 
@@ -146,6 +147,185 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("refreshTasksBtn").addEventListener("click", loadTasks);
 
+  // ================= Calendar Tab =================
+  let cachedEvents = [];
+  let currentFilter = "all";
+
+  const eventList = document.getElementById("eventList");
+  const eventBadge = document.getElementById("eventBadge");
+  const toggleAddEventBtn = document.getElementById("toggleAddEventBtn");
+  const quickAddEventBox = document.getElementById("quickAddEventBox");
+  const calendarAddForm = document.getElementById("calendarAddForm");
+  const calCancelBtn = document.getElementById("calCancelBtn");
+  const calEventStatus = document.getElementById("calEventStatus");
+
+  // Set default date to today for quick add
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const calDateInput = document.getElementById("calEventDate");
+  if (calDateInput) calDateInput.value = todayStr;
+
+  toggleAddEventBtn.addEventListener("click", () => {
+    const isHidden = quickAddEventBox.style.display === "none";
+    quickAddEventBox.style.display = isHidden ? "block" : "none";
+    toggleAddEventBtn.textContent = isHidden ? "✕ Close Form" : "+ Add Event";
+    if (isHidden) document.getElementById("calEventTitle").focus();
+  });
+
+  calCancelBtn.addEventListener("click", () => {
+    quickAddEventBox.style.display = "none";
+    toggleAddEventBtn.textContent = "+ Add Event";
+    calendarAddForm.reset();
+    if (calDateInput) calDateInput.value = todayStr;
+    calEventStatus.textContent = "";
+  });
+
+  calendarAddForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    calEventStatus.textContent = "Saving event...";
+    calEventStatus.className = "status-msg";
+
+    const title = document.getElementById("calEventTitle").value.trim();
+    const date = document.getElementById("calEventDate").value;
+    const time = document.getElementById("calEventTime").value;
+    const reminderMinutes = document.getElementById("calReminder").value;
+
+    try {
+      const url = await getServerUrl();
+      const res = await fetch(`${url}/api/events`, {
+        credentials: "include",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, date, time, reminderMinutes })
+      });
+
+      if (res.ok) {
+        calEventStatus.textContent = "Event scheduled!";
+        calEventStatus.className = "status-msg success";
+        calendarAddForm.reset();
+        if (calDateInput) calDateInput.value = todayStr;
+        setTimeout(() => {
+          quickAddEventBox.style.display = "none";
+          toggleAddEventBtn.textContent = "+ Add Event";
+          calEventStatus.textContent = "";
+        }, 1200);
+        loadEvents();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        calEventStatus.textContent = err.error || "Failed to schedule event.";
+        calEventStatus.className = "status-msg error";
+      }
+    } catch {
+      calEventStatus.textContent = "Unable to connect to server.";
+      calEventStatus.className = "status-msg error";
+    }
+  });
+
+  document.querySelectorAll(".filter-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      currentFilter = pill.getAttribute("data-filter") || "all";
+      renderEvents();
+    });
+  });
+
+  async function loadEvents() {
+    try {
+      const url = await getServerUrl();
+      const res = await fetch(`${url}/api/events`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+
+      const data = await res.json();
+      cachedEvents = (data.events || []).sort((a, b) => {
+        const da = (a.date || "") + " " + (a.time || "00:00");
+        const db = (b.date || "") + " " + (b.time || "00:00");
+        return da.localeCompare(db);
+      });
+
+      eventBadge.textContent = cachedEvents.length;
+      renderEvents();
+    } catch {
+      eventList.innerHTML = '<div class="empty-state">Unable to load events from server.</div>';
+    }
+  }
+
+  function renderEvents() {
+    const today = new Date().toISOString().slice(0, 10);
+    let filtered = cachedEvents;
+
+    if (currentFilter === "today") {
+      filtered = cachedEvents.filter(e => (e.date || "").slice(0, 10) === today);
+    } else if (currentFilter === "upcoming") {
+      filtered = cachedEvents.filter(e => (e.date || "").slice(0, 10) >= today);
+    }
+
+    if (!filtered.length) {
+      eventList.innerHTML = `<div class="empty-state">No ${currentFilter === "all" ? "scheduled" : currentFilter} events found.</div>`;
+      return;
+    }
+
+    eventList.innerHTML = filtered.map(e => {
+      const provider = e.provider || "Local";
+      const pClass = provider.toLowerCase() === "google" ? "provider-google" : provider.toLowerCase() === "microsoft" ? "provider-microsoft" : "provider-local";
+      const dateDisplay = formatEventDate(e.date);
+      const timeDisplay = e.time ? ` • ${formatEventTime(e.time)}` : "";
+
+      return `
+        <div class="event-item" data-id="${escapeHtml(e.id)}" data-provider="${escapeHtml(provider)}">
+          <div class="event-item-body">
+            <div class="event-item-title">${escapeHtml(e.title)}</div>
+            <div class="event-item-meta">
+              <span class="provider-badge ${pClass}">${escapeHtml(provider)}</span>
+              <span class="event-time-tag">📅 ${dateDisplay}${timeDisplay}</span>
+            </div>
+          </div>
+          <button class="event-delete-btn" title="Delete Event">✕</button>
+        </div>
+      `;
+    }).join("");
+
+    eventList.querySelectorAll(".event-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async (e) => {
+        const item = e.target.closest(".event-item");
+        const id = item.getAttribute("data-id");
+        const url = await getServerUrl();
+
+        await fetch(`${url}/api/events?id=${encodeURIComponent(id)}`, {
+          credentials: "include",
+          method: "DELETE"
+        });
+        loadEvents();
+      });
+    });
+  }
+
+  function formatEventDate(dateStr) {
+    if (!dateStr) return "No date";
+    const parts = dateStr.slice(0, 10).split("-");
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+      }
+    }
+    return dateStr;
+  }
+
+  function formatEventTime(timeStr) {
+    if (!timeStr) return "";
+    const parts = timeStr.split(":");
+    if (parts.length >= 2) {
+      const h = Number(parts[0]);
+      const m = parts[1];
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 || 12;
+      return `${h12}:${m} ${ampm}`;
+    }
+    return timeStr;
+  }
+
+  document.getElementById("refreshEventsBtn").addEventListener("click", loadEvents);
+
   // TT Bot Chat
   const botForm = document.getElementById("botForm");
   const botInput = document.getElementById("botInput");
@@ -211,4 +391,5 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Initial load
   loadTasks();
+  loadEvents();
 });

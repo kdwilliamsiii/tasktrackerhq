@@ -19,8 +19,9 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="tab-capture">Ὄc Capture</button>
+    <button class="tab-btn active" data-tab="tab-capture">⚡ Capture</button>
     <button class="tab-btn" data-tab="tab-tasks">☑ Tasks <span class="badge" id="taskBadge">0</span></button>
+    <button class="tab-btn" data-tab="tab-calendar">📅 Calendar <span class="badge" id="eventBadge">0</span></button>
     <button class="tab-btn" data-tab="tab-bot">✦ TT Bot</button>
     <button class="tab-btn" data-tab="tab-settings">⚙ Settings</button>
   </div>
@@ -67,6 +68,65 @@
     </div>
     <div class="task-list" id="taskList">
       <div class="empty-state">Loading tasks...</div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-calendar">
+    <div class="calendar-toolbar">
+      <div class="calendar-toolbar-title">
+        <span>Scheduled Events</span>
+      </div>
+      <div class="calendar-toolbar-actions">
+        <button type="button" class="btn-text-sm" id="toggleAddEventBtn">+ Add Event</button>
+        <button class="btn-icon" id="refreshEventsBtn" title="Refresh Events">↻</button>
+      </div>
+    </div>
+
+    <!-- Quick Add Event Form -->
+    <div class="quick-add-event-box" id="quickAddEventBox" style="display: none;">
+      <form id="calendarAddForm">
+        <div class="form-group">
+          <label for="calEventTitle">Event Title</label>
+          <input type="text" id="calEventTitle" placeholder="e.g. Sprint Planning, Doctor appt" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="calEventDate">Date</label>
+            <input type="date" id="calEventDate" required>
+          </div>
+          <div class="form-group">
+            <label for="calEventTime">Time (optional)</label>
+            <input type="time" id="calEventTime">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="calReminder">Reminder</label>
+            <select id="calReminder">
+              <option value="15">15 min before</option>
+              <option value="30" selected>30 min before</option>
+              <option value="60">1 hour before</option>
+              <option value="1440">1 day before</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row-dual">
+          <button type="submit" class="btn-primary-sm" id="calSaveBtn">Save Event</button>
+          <button type="button" class="btn-secondary-sm" id="calCancelBtn">Cancel</button>
+        </div>
+        <div class="status-msg" id="calEventStatus"></div>
+      </form>
+    </div>
+
+    <!-- Events List Filter -->
+    <div class="event-filter-bar">
+      <button class="filter-pill active" data-filter="all">All</button>
+      <button class="filter-pill" data-filter="upcoming">Upcoming</button>
+      <button class="filter-pill" data-filter="today">Today</button>
+    </div>
+
+    <div class="event-list" id="eventList">
+      <div class="empty-state">Loading scheduled events...</div>
     </div>
   </div>
 
