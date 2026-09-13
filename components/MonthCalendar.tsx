@@ -12,7 +12,7 @@ function toneForProvider(provider?: string) {
 }
 
 function isMovable(event: CalendarListEvent) {
-  return !event.provider || event.provider === "Local";
+  return !event.provider || event.provider === "Local" || event.provider === "Google";
 }
 
 function toDateKey(date: Date) {
