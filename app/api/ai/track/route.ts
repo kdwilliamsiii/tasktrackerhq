@@ -30,12 +30,6 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id;
-    const url = new URL(req.url);
-    const scope = url.searchParams.get("scope");
-
-    const targetUser = scope === "all" ? undefined : userId;
-    const summary = await getAiUsageSummary(targetUser);
-    const recentLogs = await listAiUsage(targetUser, 50);
 
     // Get current user monthly stats and tier info
     const profile = userId ? await getUserProfile(userId) : null;
@@ -45,13 +39,28 @@ export async function GET(req: Request) {
       ? await getMonthlyAiUsageForUser(userId)
       : await getMonthlyAiUsageForUser("anonymous");
 
+    // Fetch user's own last 20 actions (stripping token counts and internal costs for user privacy)
+    const rawLogs = await listAiUsage(userId || "anonymous", 20);
+    const userSafeLogs = rawLogs.map((l) => ({
+      id: l.id,
+      feature: l.feature,
+      model: l.model,
+      createdAt: l.createdAt,
+    }));
+
     return NextResponse.json({
-      summary,
-      recentLogs,
       tier,
       tierConfig,
       pricingTiers: PRICING_TIERS,
-      monthlyStats,
+      monthlyStats: {
+        monthLabel: monthlyStats.monthLabel,
+        fastCount: monthlyStats.fastCount,
+        advancedCount: monthlyStats.advancedCount,
+        nanoCount: monthlyStats.nanoCount,
+        limitFast: profile?.customFastLimit ?? tierConfig.monthlyLimitFast,
+        limitAdvanced: profile?.customAdvancedLimit ?? tierConfig.monthlyLimitAdvanced,
+      },
+      recentLogs: userSafeLogs,
     });
   } catch (error) {
     console.error("Error fetching AI usage:", error);

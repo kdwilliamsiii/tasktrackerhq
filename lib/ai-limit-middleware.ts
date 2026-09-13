@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { getUserProfile, getMonthlyAiUsageForUser } from "./db";
+import { getUserProfile, getMonthlyAiUsageForUser, getGlobalFeatureToggles } from "./db";
 import { getTierConfig, type PricingTier } from "./ai-tiers";
 
 export interface RateLimitCheckResult {
   allowed: boolean;
   tier: PricingTier;
   reason?: string;
+  banned?: boolean;
   monthlyStats: {
     monthLabel: string;
     fastCount: number;
@@ -22,6 +23,8 @@ export interface RateLimitCheckResult {
  * Validates whether a user is allowed to make a specific AI call under their pricing tier limits.
  *
  * Rules:
+ * - Feature toggles: Checked globally (admin kill switch for TT Bot, Fast Mode, Advanced Mode).
+ * - Banned users: Blocked immediately.
  * - Gemini Nano (on-device): Always allowed (unlimited, free).
  * - Fast Cloud AI (e.g. o3-mini): Blocked if user exceeds `monthlyLimitFast` or budget cap.
  * - Advanced AI (e.g. GPT-4.1 / TT Bot): Blocked if user's tier has 0 limit (Free tier) or exceeds limit.
@@ -33,10 +36,73 @@ export async function checkAiRateLimit(
 ): Promise<RateLimitCheckResult> {
   const isNano = modelName.toLowerCase().includes("nano");
 
-  // Fetch user profile to get their configured tier
+  // Global feature kill-switch check
+  const toggles = await getGlobalFeatureToggles();
+  if (requestType === "fast" && !toggles.fastModeEnabled) {
+    return {
+      allowed: false,
+      tier: "free",
+      reason: "Fast AI mode is temporarily disabled by the system administrator.",
+      monthlyStats: {
+        monthLabel: "",
+        fastCount: 0,
+        advancedCount: 0,
+        nanoCount: 0,
+        totalCostUsd: 0,
+        limitFast: 0,
+        limitAdvanced: 0,
+        limitCostUsd: 0,
+      },
+    };
+  }
+
+  if (requestType === "advanced" && !toggles.advancedModeEnabled) {
+    return {
+      allowed: false,
+      tier: "free",
+      reason: "Advanced AI reasoning is temporarily disabled by the system administrator.",
+      monthlyStats: {
+        monthLabel: "",
+        fastCount: 0,
+        advancedCount: 0,
+        nanoCount: 0,
+        totalCostUsd: 0,
+        limitFast: 0,
+        limitAdvanced: 0,
+        limitCostUsd: 0,
+      },
+    };
+  }
+
+  // Fetch user profile to get their configured tier & custom overrides
   const profile = userId !== "anonymous" ? await getUserProfile(userId) : null;
+
+  if (profile?.banned) {
+    return {
+      allowed: false,
+      tier: profile.tier || "free",
+      banned: true,
+      reason: "Your AI access has been suspended by an administrator due to policy or usage violations.",
+      monthlyStats: {
+        monthLabel: "",
+        fastCount: 0,
+        advancedCount: 0,
+        nanoCount: 0,
+        totalCostUsd: 0,
+        limitFast: 0,
+        limitAdvanced: 0,
+        limitCostUsd: 0,
+      },
+    };
+  }
+
   const tier: PricingTier = profile?.tier || "free";
   const tierConfig = getTierConfig(tier);
+
+  // Apply custom admin limits / extra credits if set
+  const limitFast = profile?.customFastLimit ?? tierConfig.monthlyLimitFast;
+  const limitAdvanced = profile?.customAdvancedLimit ?? tierConfig.monthlyLimitAdvanced;
+  const limitCostUsd = tierConfig.monthlyLimitCostUsd + (profile?.extraCreditsUsd || 0);
 
   // Fetch current month usage
   const usage = await getMonthlyAiUsageForUser(userId);
@@ -47,9 +113,9 @@ export async function checkAiRateLimit(
     advancedCount: usage.advancedCount,
     nanoCount: usage.nanoCount,
     totalCostUsd: usage.totalCostUsd,
-    limitFast: tierConfig.monthlyLimitFast,
-    limitAdvanced: tierConfig.monthlyLimitAdvanced,
-    limitCostUsd: tierConfig.monthlyLimitCostUsd,
+    limitFast,
+    limitAdvanced,
+    limitCostUsd,
   };
 
   // On-device Nano is always free & unthrottled
@@ -58,18 +124,18 @@ export async function checkAiRateLimit(
   }
 
   // Check budget ceiling
-  if (usage.totalCostUsd >= tierConfig.monthlyLimitCostUsd) {
+  if (usage.totalCostUsd >= limitCostUsd) {
     return {
       allowed: false,
       tier,
-      reason: `Monthly AI budget limit reached ($${usage.totalCostUsd.toFixed(2)} / $${tierConfig.monthlyLimitCostUsd.toFixed(2)} USD). Please upgrade your tier.`,
+      reason: `Monthly AI budget limit reached ($${usage.totalCostUsd.toFixed(2)} / $${limitCostUsd.toFixed(2)} USD). Please upgrade your tier.`,
       monthlyStats,
     };
   }
 
   // Check Advanced Mode Limits
   if (requestType === "advanced") {
-    if (tierConfig.monthlyLimitAdvanced <= 0) {
+    if (limitAdvanced <= 0) {
       return {
         allowed: false,
         tier,
@@ -77,11 +143,11 @@ export async function checkAiRateLimit(
         monthlyStats,
       };
     }
-    if (usage.advancedCount >= tierConfig.monthlyLimitAdvanced) {
+    if (usage.advancedCount >= limitAdvanced) {
       return {
         allowed: false,
         tier,
-        reason: `Monthly Advanced AI limit reached (${usage.advancedCount}/${tierConfig.monthlyLimitAdvanced} requests). Please upgrade for more capacity.`,
+        reason: `Monthly Advanced AI limit reached (${usage.advancedCount}/${limitAdvanced} requests). Please upgrade for more capacity.`,
         monthlyStats,
       };
     }
@@ -89,11 +155,11 @@ export async function checkAiRateLimit(
 
   // Check Fast Mode Limits
   if (requestType === "fast") {
-    if (usage.fastCount >= tierConfig.monthlyLimitFast) {
+    if (usage.fastCount >= limitFast) {
       return {
         allowed: false,
         tier,
-        reason: `Monthly Fast AI limit reached (${usage.fastCount}/${tierConfig.monthlyLimitFast} requests). Upgrade your tier or use Gemini Nano on-device.`,
+        reason: `Monthly Fast AI limit reached (${usage.fastCount}/${limitFast} requests). Upgrade your tier or use Gemini Nano on-device.`,
         monthlyStats,
       };
     }

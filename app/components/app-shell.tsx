@@ -18,6 +18,7 @@ import {
   X,
   ChevronDown,
   Bell,
+  Cpu,
 } from "lucide-react";
 import SearchBar from "../../components/SearchBar";
 import { useNotifications } from "../../components/NotificationProvider";
@@ -180,6 +181,12 @@ export function AppShell({ children, active, eyebrow, title, description, action
             <Lightbulb className="nav-icon" size={18} />
             <span>Feedback</span>
           </Link>
+          {session?.user?.role === "admin" && (
+            <Link className={"nav-item" + (active === "AI Intelligence" ? " active" : "")} href="/admin/ai-usage" onClick={() => setMobileNavOpen(false)}>
+              <Cpu className="nav-icon" size={18} />
+              <span>AI Intelligence</span>
+            </Link>
+          )}
 
           <button
             type="button"

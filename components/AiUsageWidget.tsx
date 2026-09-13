@@ -1,27 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Cpu, Zap, RefreshCw, ShieldCheck } from "lucide-react";
+import { Sparkles, Cpu, Zap, RefreshCw, ShieldCheck, ArrowUpRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useNotifications } from "./NotificationProvider";
-
-type AiSummary = {
-  totalRequests: number;
-  totalTokensIn: number;
-  totalTokensOut: number;
-  totalCostUsd: number;
-  byModel: Record<string, { count: number; costUsd: number; tokensIn: number; tokensOut: number }>;
-  byFeature: Record<string, { count: number; costUsd: number }>;
-};
 
 type MonthlyStats = {
   monthLabel: string;
-  totalRequests: number;
   fastCount: number;
   advancedCount: number;
   nanoCount: number;
-  totalTokensIn: number;
-  totalTokensOut: number;
-  totalCostUsd: number;
+  limitFast: number;
+  limitAdvanced: number;
 };
 
 type TierConfig = {
@@ -29,24 +18,18 @@ type TierConfig = {
   monthlyPriceUsd: number;
   monthlyLimitFast: number;
   monthlyLimitAdvanced: number;
-  monthlyLimitCostUsd: number;
   allowGeminiNano: boolean;
 };
 
-type AiLog = {
+type UserAiLog = {
   id: string;
-  userId: string;
-  model: string;
   feature: string;
-  tokensIn: number;
-  tokensOut: number;
-  costUsd: number;
+  model: string;
   createdAt: string;
 };
 
 export default function AiUsageWidget() {
-  const [summary, setSummary] = useState<AiSummary | null>(null);
-  const [logs, setLogs] = useState<AiLog[]>([]);
+  const [logs, setLogs] = useState<UserAiLog[]>([]);
   const [currentTier, setCurrentTier] = useState<"free" | "pro" | "enterprise">("free");
   const [tierConfig, setTierConfig] = useState<TierConfig | null>(null);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyStats | null>(null);
@@ -60,14 +43,13 @@ export default function AiUsageWidget() {
       const res = await fetch("/api/ai/track");
       if (res.ok) {
         const data = await res.json();
-        setSummary(data.summary);
         setLogs(data.recentLogs || []);
         if (data.tier) setCurrentTier(data.tier);
         if (data.tierConfig) setTierConfig(data.tierConfig);
         if (data.monthlyStats) setMonthlyStats(data.monthlyStats);
       }
     } catch (err) {
-      console.error("Failed to load AI usage stats", err);
+      console.error("Failed to load user AI usage", err);
     } finally {
       setLoading(false);
     }
@@ -99,27 +81,25 @@ export default function AiUsageWidget() {
     }
   };
 
-  const fastUsagePct = tierConfig?.monthlyLimitFast
-    ? Math.min(100, Math.round(((monthlyStats?.fastCount || 0) / tierConfig.monthlyLimitFast) * 100))
-    : 0;
+  const limitFast = monthlyStats?.limitFast || tierConfig?.monthlyLimitFast || 100;
+  const limitAdv = monthlyStats?.limitAdvanced ?? tierConfig?.monthlyLimitAdvanced ?? 0;
+  const fastCount = monthlyStats?.fastCount || 0;
+  const advCount = monthlyStats?.advancedCount || 0;
+  const nanoCount = monthlyStats?.nanoCount || 0;
 
-  const advancedUsagePct = tierConfig?.monthlyLimitAdvanced
-    ? Math.min(100, Math.round(((monthlyStats?.advancedCount || 0) / tierConfig.monthlyLimitAdvanced) * 100))
-    : 0;
-
-  const costUsagePct = tierConfig?.monthlyLimitCostUsd
-    ? Math.min(100, Math.round(((monthlyStats?.totalCostUsd || 0) / tierConfig.monthlyLimitCostUsd) * 100))
-    : 0;
+  const fastUsagePct = Math.min(100, Math.round((fastCount / (limitFast || 1)) * 100));
+  const advUsagePct = limitAdv > 0 ? Math.min(100, Math.round((advCount / limitAdv) * 100)) : 0;
 
   return (
     <section className="panel" style={{ gridColumn: "1 / -1" }}>
+      {/* Header */}
       <div className="settings-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Sparkles size={18} color="var(--teal)" />
-            AI Usage &amp; Cost Intelligence
+            AI Workspace &amp; Quotas
           </h2>
-          <p>Enforce tier limits, monitor token metrics, and review monthly AI costs per user.</p>
+          <p>Monitor your monthly AI actions, available limits, and on-device speed boosts.</p>
         </div>
         <button
           className="text-button"
@@ -132,16 +112,53 @@ export default function AiUsageWidget() {
         </button>
       </div>
 
-      {/* Pricing Tier Selector Bar */}
+      {/* Upgrade Callout if near limits or on free tier */}
+      {currentTier === "free" && (
+        <div
+          style={{
+            marginTop: 14,
+            padding: "12px 16px",
+            borderRadius: "var(--radius)",
+            background: "color-mix(in srgb, var(--teal) 10%, var(--surface))",
+            border: "1px solid color-mix(in srgb, var(--teal) 30%, var(--line))",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div>
+            <strong style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--navy)", fontSize: 13 }}>
+              <ArrowUpRight size={16} color="var(--teal)" />
+              Unlock Advanced Reasoning (GPT-4.1) &amp; 2,000 Monthly Actions
+            </strong>
+            <small style={{ color: "var(--muted)", fontSize: 11 }}>
+              Pro tier gives you full day-planning roadmaps, project phase breakdowns, and TT Bot deep analysis.
+            </small>
+          </div>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => switchTier("pro")}
+            disabled={updatingTier}
+            style={{ padding: "7px 14px", fontSize: 11 }}
+          >
+            Upgrade to Pro ($12/mo)
+          </button>
+        </div>
+      )}
+
+      {/* Tier Selector & Status */}
       <div style={{ marginTop: 16, padding: "16px", background: "var(--background)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
           <div>
             <strong style={{ fontSize: 13, color: "var(--navy)", display: "flex", alignItems: "center", gap: 6 }}>
               <ShieldCheck size={16} color="var(--teal)" />
-              Active Subscription Tier: <span style={{ textTransform: "uppercase", color: "var(--teal)" }}>{currentTier}</span>
+              Your Plan: <span style={{ textTransform: "uppercase", color: "var(--teal)" }}>{currentTier}</span>
             </strong>
             <small style={{ color: "var(--muted)", fontSize: 11 }}>
-              Limits and AI middleware controls are enforced automatically on every request.
+              Quota resets at the start of every calendar month ({monthlyStats?.monthLabel || "This Month"}).
             </small>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -168,140 +185,117 @@ export default function AiUsageWidget() {
           </div>
         </div>
 
-        {/* Limit Enforcement Progress Bars */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 12 }}>
-          {/* Fast Cloud Calls */}
-          <div style={{ padding: 10, background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
+        {/* Quota Progress Cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+          {/* Fast Cloud Assistant Quota */}
+          <div style={{ padding: 12, background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-              <span>Fast AI (o3-mini / Cloud)</span>
-              <strong>{monthlyStats?.fastCount || 0} / {tierConfig?.monthlyLimitFast || 100}</strong>
+              <span style={{ fontWeight: 600 }}>Fast Actions (Cloud)</span>
+              <strong>{fastCount} / {limitFast}</strong>
             </div>
-            <div style={{ height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${fastUsagePct}%`, background: fastUsagePct > 90 ? "var(--orange)" : "var(--teal)", transition: "width 0.3s" }} />
+            <div style={{ height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden", margin: "6px 0" }}>
+              <div style={{ height: "100%", width: `${fastUsagePct}%`, background: fastUsagePct >= 90 ? "var(--orange)" : "var(--teal)", transition: "width 0.3s" }} />
             </div>
-            <small style={{ fontSize: 9, color: "var(--muted)", marginTop: 4, display: "block" }}>{fastUsagePct}% of monthly limit used</small>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--muted)" }}>
+              <span>{Math.max(0, limitFast - fastCount)} actions remaining</span>
+              <span>{fastUsagePct}% used</span>
+            </div>
           </div>
 
-          {/* Advanced Reasoning Calls */}
-          <div style={{ padding: 10, background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
+          {/* Advanced Reasoning Quota */}
+          <div style={{ padding: 12, background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-              <span>Advanced AI (GPT-4.1)</span>
-              <strong>
-                {tierConfig?.monthlyLimitAdvanced === 0 ? "Blocked (Free)" : `${monthlyStats?.advancedCount || 0} / ${tierConfig?.monthlyLimitAdvanced || 0}`}
-              </strong>
+              <span style={{ fontWeight: 600 }}>Advanced Reasoning</span>
+              <strong>{limitAdv === 0 ? "Requires Pro" : `${advCount} / ${limitAdv}`}</strong>
             </div>
-            <div style={{ height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${tierConfig?.monthlyLimitAdvanced === 0 ? 0 : advancedUsagePct}%`, background: "var(--orange)", transition: "width 0.3s" }} />
+            <div style={{ height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden", margin: "6px 0" }}>
+              <div style={{ height: "100%", width: `${limitAdv === 0 ? 0 : advUsagePct}%`, background: "var(--orange)", transition: "width 0.3s" }} />
             </div>
-            <small style={{ fontSize: 9, color: "var(--muted)", marginTop: 4, display: "block" }}>
-              {tierConfig?.monthlyLimitAdvanced === 0 ? "Upgrade to Pro to unlock GPT-4.1" : `${advancedUsagePct}% of monthly limit used`}
-            </small>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--muted)" }}>
+              <span>{limitAdv === 0 ? "GPT-4.1 Reasoning & Day Planner" : `${Math.max(0, limitAdv - advCount)} actions remaining`}</span>
+              <span>{limitAdv === 0 ? "Locked" : `${advUsagePct}% used`}</span>
+            </div>
           </div>
 
-          {/* Monthly Budget Cap */}
-          <div style={{ padding: 10, background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
+          {/* Gemini Nano On-Device Boost */}
+          <div style={{ padding: 12, background: "var(--surface)", borderRadius: "var(--radius)", border: "1px solid var(--line)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-              <span>Monthly AI Cost Budget</span>
-              <strong>${(monthlyStats?.totalCostUsd || 0).toFixed(3)} / ${(tierConfig?.monthlyLimitCostUsd || 0.5).toFixed(2)}</strong>
+              <span style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                <Cpu size={13} color="var(--teal)" /> On-Device (Gemini Nano)
+              </span>
+              <strong style={{ color: "var(--teal)" }}>{nanoCount} actions</strong>
             </div>
-            <div style={{ height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${costUsagePct}%`, background: costUsagePct > 90 ? "#ef4444" : "var(--teal)", transition: "width 0.3s" }} />
+            <div style={{ height: 6, background: "var(--line)", borderRadius: 3, overflow: "hidden", margin: "6px 0" }}>
+              <div style={{ height: "100%", width: "100%", background: "var(--teal)" }} />
             </div>
-            <small style={{ fontSize: 9, color: "var(--muted)", marginTop: 4, display: "block" }}>{monthlyStats?.monthLabel || "This Month"}</small>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--muted)" }}>
+              <span>Private &amp; Offline execution</span>
+              <span style={{ color: "var(--teal)", fontWeight: 600 }}>Unlimited</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, margin: "18px 0" }}>
-        <div style={{ padding: "14px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--background)" }}>
-          <span style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>Total Monthly Requests</span>
-          <strong style={{ fontSize: 22, color: "var(--navy)", display: "block", marginTop: 4 }}>
-            {monthlyStats?.totalRequests ?? summary?.totalRequests ?? 0}
-          </strong>
-        </div>
+      {/* Feature Availability Matrix */}
+      <div style={{ marginTop: 18 }}>
+        <h3 style={{ fontSize: 12, color: "var(--navy)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          Feature Access &amp; Quota Matrix
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+          <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--surface)", fontSize: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--navy)", marginBottom: 4 }}>
+              <CheckCircle2 size={14} color="var(--teal)" /> Quick Task Polish &amp; Rewrite
+            </div>
+            <span style={{ color: "var(--muted)" }}>Fast Mode &amp; On-device Gemini Nano</span>
+          </div>
 
-        <div style={{ padding: "14px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--background)" }}>
-          <span style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>On-Device (Gemini Nano)</span>
-          <strong style={{ fontSize: 22, color: "var(--teal)", display: "block", marginTop: 4 }}>
-            {monthlyStats?.nanoCount ?? summary?.byModel["gemini-nano"]?.count ?? 0}
-          </strong>
-          <small style={{ fontSize: 10, color: "var(--muted)" }}>Unlimited &amp; Free ($0.00)</small>
-        </div>
+          <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--surface)", fontSize: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "var(--navy)", marginBottom: 4 }}>
+              <CheckCircle2 size={14} color="var(--teal)" /> Browser Extension Quick-Add
+            </div>
+            <span style={{ color: "var(--muted)" }}>Instant AI title enhancement from any tab</span>
+          </div>
 
-        <div style={{ padding: "14px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--background)" }}>
-          <span style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>Tokens Consumed (In / Out)</span>
-          <strong style={{ fontSize: 22, color: "var(--foreground)", display: "block", marginTop: 4 }}>
-            {(monthlyStats?.totalTokensIn ?? 0) + (monthlyStats?.totalTokensOut ?? 0)}
-          </strong>
-          <small style={{ fontSize: 10, color: "var(--muted)" }}>
-            {monthlyStats?.totalTokensIn ?? 0} prompt / {monthlyStats?.totalTokensOut ?? 0} completion
-          </small>
-        </div>
+          <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--surface)", fontSize: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: currentTier === "free" ? "var(--muted)" : "var(--navy)", marginBottom: 4 }}>
+              {currentTier === "free" ? <AlertCircle size={14} color="var(--orange)" /> : <CheckCircle2 size={14} color="var(--teal)" />}
+              TT Bot Full Day Planning
+            </div>
+            <span style={{ color: "var(--muted)" }}>{currentTier === "free" ? "Requires Pro or Enterprise" : "Full access (GPT-4.1)"}</span>
+          </div>
 
-        <div style={{ padding: "14px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--background)" }}>
-          <span style={{ fontSize: 11, color: "var(--muted)", display: "block" }}>Monthly Calculated Cost</span>
-          <strong style={{ fontSize: 22, color: "var(--orange)", display: "block", marginTop: 4 }}>
-            ${(monthlyStats?.totalCostUsd ?? 0).toFixed(4)}
-          </strong>
-          <small style={{ fontSize: 10, color: "var(--muted)" }}>USD across cloud models</small>
+          <div style={{ padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "var(--radius)", background: "var(--surface)", fontSize: 11 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: currentTier === "free" ? "var(--muted)" : "var(--navy)", marginBottom: 4 }}>
+              {currentTier === "free" ? <AlertCircle size={14} color="var(--orange)" /> : <CheckCircle2 size={14} color="var(--teal)" />}
+              Coursework &amp; GPA Projections
+            </div>
+            <span style={{ color: "var(--muted)" }}>{currentTier === "free" ? "Requires Pro or Enterprise" : "Full access (GPT-4.1)"}</span>
+          </div>
         </div>
       </div>
 
-      {summary && Object.keys(summary.byModel).length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <h3 style={{ fontSize: 13, marginBottom: 8, color: "var(--navy)" }}>Usage Breakdown by Model</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-            {Object.entries(summary.byModel).map(([modelName, stats]) => (
-              <div
-                key={modelName}
-                style={{
-                  padding: "10px 12px",
-                  border: "1px solid var(--line)",
-                  borderRadius: "var(--radius)",
-                  background: "var(--surface)",
-                  fontSize: 12,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, marginBottom: 4 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    {modelName.includes("nano") ? <Cpu size={14} color="var(--teal)" /> : <Zap size={14} color="var(--orange)" />}
-                    {modelName}
-                  </span>
-                  <span>{stats.count} reqs</span>
-                </div>
-                <div style={{ fontSize: 11, color: "var(--muted)", display: "flex", justifyContent: "space-between" }}>
-                  <span>{stats.tokensIn + stats.tokensOut} tokens</span>
-                  <strong>${stats.costUsd.toFixed(4)}</strong>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* User's Recent Action History (Tokens & internal costs stripped) */}
       {logs.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <h3 style={{ fontSize: 13, marginBottom: 8, color: "var(--navy)" }}>Recent Request Telemetry</h3>
+          <h3 style={{ fontSize: 12, color: "var(--navy)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Your Recent AI History
+          </h3>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", fontSize: 11, borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--line)", color: "var(--muted)" }}>
                   <th style={{ padding: "8px 6px" }}>Time</th>
-                  <th style={{ padding: "8px 6px" }}>User</th>
-                  <th style={{ padding: "8px 6px" }}>Model</th>
-                  <th style={{ padding: "8px 6px" }}>Feature</th>
-                  <th style={{ padding: "8px 6px" }}>Tokens (In / Out)</th>
-                  <th style={{ padding: "8px 6px" }}>Cost (USD)</th>
+                  <th style={{ padding: "8px 6px" }}>Action / Feature</th>
+                  <th style={{ padding: "8px 6px" }}>Engine</th>
+                  <th style={{ padding: "8px 6px" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {logs.slice(0, 10).map((log) => (
+                {logs.map((log) => (
                   <tr key={log.id} style={{ borderBottom: "1px solid var(--line)" }}>
                     <td style={{ padding: "8px 6px", whiteSpace: "nowrap" }}>
                       {new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                     </td>
-                    <td style={{ padding: "8px 6px" }}>{log.userId.slice(0, 12)}</td>
-                    <td style={{ padding: "8px 6px", fontWeight: 600 }}>{log.model}</td>
                     <td style={{ padding: "8px 6px" }}>
                       <span
                         style={{
@@ -310,14 +304,17 @@ export default function AiUsageWidget() {
                           background: "var(--sidebarActive)",
                           color: "var(--sidebarText)",
                           fontSize: 10,
+                          fontWeight: 600,
                         }}
                       >
                         {log.feature}
                       </span>
                     </td>
-                    <td style={{ padding: "8px 6px" }}>{log.tokensIn} / {log.tokensOut}</td>
-                    <td style={{ padding: "8px 6px", fontWeight: 600, color: log.costUsd > 0 ? "var(--orange)" : "var(--teal)" }}>
-                      ${log.costUsd.toFixed(5)}
+                    <td style={{ padding: "8px 6px", color: "var(--foreground)" }}>
+                      {log.model.includes("nano") ? "Gemini Nano (On-Device)" : log.model}
+                    </td>
+                    <td style={{ padding: "8px 6px", color: "var(--teal)", fontWeight: 600 }}>
+                      ✓ Completed
                     </td>
                   </tr>
                 ))}

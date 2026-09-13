@@ -24,6 +24,10 @@ export type UserProfile = {
   image?: string | null;
   role: "admin" | "user";
   tier?: "free" | "pro" | "enterprise";
+  banned?: boolean;
+  extraCreditsUsd?: number;
+  customFastLimit?: number;
+  customAdvancedLimit?: number;
   provider: string;
   providerAccountId: string;
   createdAt: string;
@@ -65,6 +69,220 @@ export async function deleteUserProfile(id: string) {
   const result = await db.collection<UserProfile>("users").deleteOne({ id });
   return result.deletedCount > 0;
 }
+
+export async function listAllUsers() {
+  return db.collection<UserProfile>("users").find({}, { projection: { _id: 0 } }).toArray();
+}
+
+export async function adminUpdateUser(
+  id: string,
+  updates: Partial<Pick<UserProfile, "tier" | "banned" | "extraCreditsUsd" | "customFastLimit" | "customAdvancedLimit" | "role">>
+) {
+  const result = await db.collection<UserProfile>("users").findOneAndUpdate(
+    { id },
+    { $set: { ...updates, updatedAt: new Date().toISOString() } },
+    { returnDocument: "after", projection: { _id: 0 } }
+  );
+  return result;
+}
+
+export async function adminResetUserUsage(userId: string) {
+  const result = await aiUsageCollection().deleteMany({ userId });
+  return result.deletedCount;
+}
+
+export type GlobalFeatureToggles = {
+  id: "global_feature_toggles";
+  ttBotEnabled: boolean;
+  fastModeEnabled: boolean;
+  advancedModeEnabled: boolean;
+  calendarAnalysisEnabled: boolean;
+  projectBreakdownEnabled: boolean;
+  updatedAt: string;
+};
+
+const featureTogglesCollection = () => db.collection<GlobalFeatureToggles>("feature_toggles");
+
+export async function getGlobalFeatureToggles(): Promise<GlobalFeatureToggles> {
+  const toggles = await featureTogglesCollection().findOne({ id: "global_feature_toggles" }, { projection: { _id: 0 } });
+  if (toggles) return toggles;
+  const initial: GlobalFeatureToggles = {
+    id: "global_feature_toggles",
+    ttBotEnabled: true,
+    fastModeEnabled: true,
+    advancedModeEnabled: true,
+    calendarAnalysisEnabled: true,
+    projectBreakdownEnabled: true,
+    updatedAt: new Date().toISOString(),
+  };
+  await featureTogglesCollection().updateOne({ id: "global_feature_toggles" }, { $set: initial }, { upsert: true });
+  return initial;
+}
+
+export async function updateGlobalFeatureToggles(changes: Partial<Omit<GlobalFeatureToggles, "id" | "updatedAt">>): Promise<GlobalFeatureToggles> {
+  const result = await featureTogglesCollection().findOneAndUpdate(
+    { id: "global_feature_toggles" },
+    { $set: { ...changes, updatedAt: new Date().toISOString() } },
+    { upsert: true, returnDocument: "after", projection: { _id: 0 } }
+  );
+  return result || getGlobalFeatureToggles();
+}
+
+export async function getAdminAiAnalytics() {
+  const { startIso, endIso, monthLabel } = getCurrentMonthWindow();
+  const allLogs = await aiUsageCollection().find({}, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray();
+  const allUsers = await listAllUsers();
+
+  const userMap = new Map<string, UserProfile>();
+  allUsers.forEach((u) => userMap.set(u.id, u));
+
+  let totalCostUsd = 0;
+  let totalTokensIn = 0;
+  let totalTokensOut = 0;
+  let monthlyCostUsd = 0;
+  let monthlyRequests = 0;
+  let monthlyFastCount = 0;
+  let monthlyAdvancedCount = 0;
+  let monthlyNanoCount = 0;
+
+  const costByModel: Record<string, { count: number; costUsd: number; tokensIn: number; tokensOut: number }> = {};
+  const costByFeature: Record<string, { count: number; costUsd: number }> = {};
+  const userUsageMap: Record<
+    string,
+    {
+      userId: string;
+      name: string;
+      email: string;
+      tier: string;
+      banned: boolean;
+      totalRequests: number;
+      fastCount: number;
+      advancedCount: number;
+      nanoCount: number;
+      tokensIn: number;
+      tokensOut: number;
+      totalCostUsd: number;
+      lastActive: string;
+      abuseFlag: boolean;
+      abuseReason?: string;
+    }
+  > = {};
+
+  const hourlyVolume: Record<string, number> = {};
+
+  for (const log of allLogs) {
+    const isThisMonth = log.createdAt >= startIso && log.createdAt <= endIso;
+    const cost = log.costUsd || 0;
+    totalCostUsd += cost;
+    totalTokensIn += log.tokensIn || 0;
+    totalTokensOut += log.tokensOut || 0;
+
+    if (isThisMonth) {
+      monthlyCostUsd += cost;
+      monthlyRequests++;
+    }
+
+    const modelName = log.model || "unknown";
+    const featName = log.feature || "general";
+    const isNano = modelName.toLowerCase().includes("nano");
+    const isAdvanced =
+      featName.includes("advanced") ||
+      featName.includes("tt-bot") ||
+      modelName.includes("gpt-4.1") ||
+      modelName.includes("gpt-4o") ||
+      modelName.includes("gpt-4");
+
+    if (isThisMonth) {
+      if (isNano) monthlyNanoCount++;
+      else if (isAdvanced) monthlyAdvancedCount++;
+      else monthlyFastCount++;
+    }
+
+    if (!costByModel[modelName]) {
+      costByModel[modelName] = { count: 0, costUsd: 0, tokensIn: 0, tokensOut: 0 };
+    }
+    costByModel[modelName].count++;
+    costByModel[modelName].costUsd = Number((costByModel[modelName].costUsd + cost).toFixed(6));
+    costByModel[modelName].tokensIn += log.tokensIn || 0;
+    costByModel[modelName].tokensOut += log.tokensOut || 0;
+
+    if (!costByFeature[featName]) {
+      costByFeature[featName] = { count: 0, costUsd: 0 };
+    }
+    costByFeature[featName].count++;
+    costByFeature[featName].costUsd = Number((costByFeature[featName].costUsd + cost).toFixed(6));
+
+    const dayKey = log.createdAt.slice(0, 10);
+    hourlyVolume[dayKey] = (hourlyVolume[dayKey] || 0) + 1;
+
+    const uId = log.userId || "anonymous";
+    if (!userUsageMap[uId]) {
+      const uProf = userMap.get(uId);
+      userUsageMap[uId] = {
+        userId: uId,
+        name: uProf?.name || (uId === "anonymous" ? "Anonymous / Guest" : "Unknown User"),
+        email: uProf?.email || "-",
+        tier: uProf?.tier || "free",
+        banned: Boolean(uProf?.banned),
+        totalRequests: 0,
+        fastCount: 0,
+        advancedCount: 0,
+        nanoCount: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+        totalCostUsd: 0,
+        lastActive: log.createdAt,
+        abuseFlag: false,
+      };
+    }
+
+    const uRecord = userUsageMap[uId];
+    uRecord.totalRequests++;
+    if (isNano) uRecord.nanoCount++;
+    else if (isAdvanced) uRecord.advancedCount++;
+    else uRecord.fastCount++;
+
+    uRecord.tokensIn += log.tokensIn || 0;
+    uRecord.tokensOut += log.tokensOut || 0;
+    uRecord.totalCostUsd = Number((uRecord.totalCostUsd + cost).toFixed(6));
+    if (log.createdAt > uRecord.lastActive) uRecord.lastActive = log.createdAt;
+  }
+
+  // Detect abuse signals: e.g. >150 fast calls on free, cost > $5 for non-enterprise, or >50 calls in a single day
+  for (const u of Object.values(userUsageMap)) {
+    if (u.tier === "free" && u.fastCount > 100) {
+      u.abuseFlag = true;
+      u.abuseReason = `Exceeded Free Tier fast quota (${u.fastCount}/100)`;
+    } else if (u.tier === "free" && u.advancedCount > 0) {
+      u.abuseFlag = true;
+      u.abuseReason = `Unauthorized advanced reasoning on Free tier (${u.advancedCount} reqs)`;
+    } else if (u.totalCostUsd > 10 && u.tier !== "enterprise") {
+      u.abuseFlag = true;
+      u.abuseReason = `Abnormal high cost spike ($${u.totalCostUsd.toFixed(2)})`;
+    }
+  }
+
+  return {
+    monthLabel,
+    totalAllTimeCostUsd: Number(totalCostUsd.toFixed(6)),
+    totalAllTimeRequests: allLogs.length,
+    totalAllTimeTokensIn: totalTokensIn,
+    totalAllTimeTokensOut: totalTokensOut,
+    monthly: {
+      requests: monthlyRequests,
+      costUsd: Number(monthlyCostUsd.toFixed(6)),
+      fastCount: monthlyFastCount,
+      advancedCount: monthlyAdvancedCount,
+      nanoCount: monthlyNanoCount,
+    },
+    costByModel,
+    costByFeature,
+    volumeByDay: hourlyVolume,
+    userTable: Object.values(userUsageMap).sort((a, b) => b.totalCostUsd - a.totalCostUsd),
+    recentLogs: allLogs.slice(0, 100),
+  };
+}
+
 
 export type Task = {
   id: string;
