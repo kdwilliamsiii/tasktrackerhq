@@ -7,6 +7,7 @@ import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
 import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2, Lock } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
+import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 
 type EventItem = CalendarListEvent;
 type EventDraft = { title: string; date: string; time: string; reminderMinutes: string };
@@ -105,13 +106,12 @@ export default function CalendarPage() {
     };
     void autoSyncGoogle();
 
-    const handleUpdate = () => { void loadEvents(); };
-    window.addEventListener("tasktracker-data-changed", handleUpdate);
-    window.addEventListener("tasktracker-quick-add", handleUpdate);
+    const unsubscribe = subscribeToDataSync(() => {
+      void loadEvents();
+    });
     return () => {
       window.clearTimeout(timer);
-      window.removeEventListener("tasktracker-data-changed", handleUpdate);
-      window.removeEventListener("tasktracker-quick-add", handleUpdate);
+      unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -210,7 +210,7 @@ export default function CalendarPage() {
 
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    broadcastDataChanged("calendar-event-saved");
     resetDraft();
     setActiveSection("events");
     if (target?.provider !== "Google") {
@@ -270,7 +270,7 @@ export default function CalendarPage() {
     const next = events.filter((item) => item.id !== event.id);
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    broadcastDataChanged("calendar-event-deleted");
     if (editingId === event.id) resetDraft();
     if (event.provider !== "Google") {
       notify("Calendar event deleted.", "info");
@@ -357,7 +357,7 @@ export default function CalendarPage() {
     const next = [...events, newEvent];
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    broadcastDataChanged("calendar-event-dropped");
     notify('Created event "' + (title.length > 30 ? title.slice(0, 30) + "..." : title) + '" on ' + dateKey + ".", "success");
   }
 
@@ -414,7 +414,7 @@ export default function CalendarPage() {
     const next = events.map((event) => (event.id === eventId ? { ...event, date: dateKey, time } : event));
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    broadcastDataChanged("calendar-event-moved");
     if (target.provider !== "Google") {
       notify('"' + target.title + '" moved to ' + dateKey + ".", "success");
     }

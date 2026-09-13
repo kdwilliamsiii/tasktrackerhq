@@ -25,6 +25,7 @@ import {
 import SearchBar from "../../components/SearchBar";
 import { useNotifications } from "../../components/NotificationProvider";
 import { useAuthGate } from "../../components/AuthModalProvider";
+import { broadcastDataChanged } from "../../lib/sync";
 
 const navigation = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -63,15 +64,17 @@ export function AppShell({ children, active, eyebrow, title, description, action
     setRefreshing(true);
     notify("Refreshing TaskTrackerHQ...", "info");
 
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("tasktracker-data-changed"));
-      window.dispatchEvent(new Event("tasktracker-quick-add"));
-    }
+    broadcastDataChanged("manual-refresh");
 
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       try {
         const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
+        if (reg) {
+          await reg.update();
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: "SKIP_WAITING" });
+          }
+        }
       } catch {
         // Ignore
       }

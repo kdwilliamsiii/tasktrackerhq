@@ -10,6 +10,7 @@ import DailyOverviewWidget from "../components/DailyOverviewWidget";
 import DashboardCard from "../components/DashboardCard";
 import TTBotHint from "../components/TTBotHint";
 import { ArrowRight } from "lucide-react";
+import { subscribeToDataSync } from "../lib/sync";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
@@ -91,16 +92,11 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    const dataTimer = window.setTimeout(() => {
-      void loadDashboardData();
-    }, 0);
+    void loadDashboardData();
 
-    const handleUpdate = () => {
+    const unsubscribe = subscribeToDataSync(() => {
       void loadDashboardData();
-    };
-
-    window.addEventListener("tasktracker-data-changed", handleUpdate);
-    window.addEventListener("tasktracker-quick-add", handleUpdate);
+    });
 
     const focusLoad = window.setTimeout(() => {
       try {
@@ -119,10 +115,8 @@ export default function DashboardPage() {
     }, 0);
 
     return () => {
-      window.clearTimeout(dataTimer);
+      unsubscribe();
       window.clearTimeout(focusLoad);
-      window.removeEventListener("tasktracker-data-changed", handleUpdate);
-      window.removeEventListener("tasktracker-quick-add", handleUpdate);
     };
   }, []);
 

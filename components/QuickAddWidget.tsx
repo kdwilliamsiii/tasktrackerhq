@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useAuthGate } from "./AuthModalProvider";
+import { broadcastDataChanged } from "../lib/sync";
 
 type QuickAddType = "task" | "note" | "reminder";
 
@@ -39,8 +40,7 @@ export default function QuickAddWidget() {
             saved.unshift({ id: crypto.randomUUID(), text: title, createdAt: new Date().toISOString() });
             localStorage.setItem(key, JSON.stringify(saved.slice(0, 50)));
           }
-          window.dispatchEvent(new Event("tasktracker-quick-add"));
-          window.dispatchEvent(new Event("tasktracker-data-changed"));
+          broadcastDataChanged(`quick-add-${type}`);
         }
 
         setValue("");

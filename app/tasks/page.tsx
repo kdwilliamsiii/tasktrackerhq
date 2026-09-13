@@ -7,6 +7,7 @@ import TTBotHint from "../../components/TTBotHint";
 import { Search, Download, CheckSquare, Trash2, Filter, Sparkles, Lock } from "lucide-react";
 import { callAiAssistant } from "../../lib/ai";
 import { useAuthGate } from "../../components/AuthModalProvider";
+import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 
 type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
@@ -64,8 +65,11 @@ export default function TasksPage() {
   }, [notify, isAuthenticated]);
 
   useEffect(() => {
-    const taskLoad = window.setTimeout(() => { void load(); }, 0);
-    return () => window.clearTimeout(taskLoad);
+    void load();
+    const unsubscribe = subscribeToDataSync(() => {
+      void load();
+    });
+    return () => unsubscribe();
   }, [load]);
 
   const categories = useMemo(() => {
@@ -134,7 +138,7 @@ export default function TasksPage() {
       if (!response.ok) throw new Error("Unable to save task");
       resetDraft();
       notify(editingId ? "Task updated." : "Task created.", "success");
-      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      broadcastDataChanged(editingId ? "task-updated" : "task-created");
       await load();
     } catch {
       setError("The task could not be saved. Please try again.");
@@ -152,7 +156,7 @@ export default function TasksPage() {
     });
     if (response.ok) {
       notify(changes.completed ? "Task marked complete." : "Task reopened.", "success");
-      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      broadcastDataChanged("task-status-changed");
       await load();
     } else setError("The task could not be updated.");
   }
@@ -163,7 +167,7 @@ export default function TasksPage() {
     if (response.ok) {
       setTasks((old) => old.filter((task) => task.id !== id));
       notify("Task deleted.", "info");
-      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      broadcastDataChanged("task-deleted");
     } else setError("The task could not be deleted.");
   }
 
@@ -178,6 +182,8 @@ export default function TasksPage() {
         body: JSON.stringify({ id: t.id, completed: true })
       })));
       notify(`Marked ${openTasks.length} task${openTasks.length === 1 ? "" : "s"} complete.`, "success");
+      broadcastDataChanged("tasks-completed-all");
+      await load();
       if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
       await load();
     } catch {

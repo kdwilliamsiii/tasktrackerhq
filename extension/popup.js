@@ -435,6 +435,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  // Global Sync / Refresh
+  const globalRefreshBtn = document.getElementById("globalRefreshBtn");
+  if (globalRefreshBtn) {
+    globalRefreshBtn.addEventListener("click", async () => {
+      globalRefreshBtn.classList.add("spinning");
+      await Promise.all([loadTasks(), loadEvents()]);
+      setTimeout(() => {
+        globalRefreshBtn.classList.remove("spinning");
+      }, 500);
+    });
+  }
+
   // Initial load
   loadTasks();
   loadEvents();

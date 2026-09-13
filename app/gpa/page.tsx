@@ -6,6 +6,7 @@ import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
 import { Download, Calculator, Sparkles } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
+import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 
 type CourseClass = {
   id: string;
@@ -105,26 +106,18 @@ export default function GpaPage() {
   };
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    void loadClasses();
+    const unsubscribe = subscribeToDataSync(() => {
       void loadClasses();
-    }, 0);
-
-    const handleUpdate = () => {
-      void loadClasses();
-    };
-
-    window.addEventListener("tasktracker-data-changed", handleUpdate);
-    return () => {
-      window.clearTimeout(timer);
-      window.removeEventListener("tasktracker-data-changed", handleUpdate);
-    };
+    });
+    return () => unsubscribe();
   }, []);
 
   function saveClasses(next: CourseClass[]) {
     setClasses(next);
     if (typeof window !== "undefined") {
       localStorage.setItem("tasktracker-gpa-classes", JSON.stringify(next));
-      window.dispatchEvent(new Event("tasktracker-data-changed"));
+      broadcastDataChanged("gpa-classes-updated");
     }
   }
 

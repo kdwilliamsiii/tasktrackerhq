@@ -5,6 +5,7 @@ import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import { Play, Pause, RotateCcw, Volume2, VolumeX, CheckCircle2, Sparkles, Coffee, Lock } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
+import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 
 type FocusStats = { sessions: number; minutes: number; lastSession?: string; sessionDates?: string[] };
 type TaskItem = { id: string; title: string; completed: boolean; priority: string; category?: string };
@@ -65,8 +66,7 @@ export default function FocusPage() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseNodeRef = useRef<AudioNode | null>(null);
 
-  // Load stats & tasks
-  useEffect(() => {
+  const loadFocusData = () => {
     try {
       const saved = JSON.parse(localStorage.getItem("tasktracker-focus-stats") || "null") as FocusStats | null;
       if (saved) setStats({ sessions: saved.sessions || 0, minutes: saved.minutes || 0, lastSession: saved.lastSession, sessionDates: saved.sessionDates || [] });
@@ -74,7 +74,7 @@ export default function FocusPage() {
       setStats(defaultStats);
     }
 
-    fetch("/api/tasks")
+    fetch("/api/tasks", { cache: "no-store" })
       .then(res => res.json())
       .then(data => {
         if (data.tasks && Array.isArray(data.tasks)) {
@@ -82,8 +82,16 @@ export default function FocusPage() {
         }
       })
       .catch(() => {});
+  };
 
+  // Load stats & tasks
+  useEffect(() => {
+    loadFocusData();
+    const unsubscribe = subscribeToDataSync(() => {
+      loadFocusData();
+    });
     setHydrated(true);
+    return () => unsubscribe();
   }, []);
 
   // Sync timer to document tab title
@@ -178,6 +186,7 @@ export default function FocusPage() {
               sessionDates: [...(currentStats.sessionDates || []), completedAt].slice(-365)
             };
             localStorage.setItem("tasktracker-focus-stats", JSON.stringify(next));
+            broadcastDataChanged("focus-session-completed");
             return next;
           });
         } else {
@@ -213,7 +222,7 @@ export default function FocusPage() {
         notify("Focused task marked as completed! 🎉", "success");
         setTasks(prev => prev.filter(t => t.id !== selectedTaskId));
         setSelectedTaskId("");
-        if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+        broadcastDataChanged("focus-task-completed");
       }
     } catch {
       notify("Could not update task.", "error");
