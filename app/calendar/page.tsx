@@ -25,6 +25,7 @@ export default function CalendarPage() {
   const [message, setMessage] = useState("");
   const [syncing, setSyncing] = useState("");
   const [syncMonthsBack, setSyncMonthsBack] = useState("3");
+  const [eventFilter, setEventFilter] = useState("All");
   const integrationsRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLElement>(null);
   const { notify } = useNotifications();
@@ -369,6 +370,12 @@ export default function CalendarPage() {
     }
   }
 
+  
+  const filteredEvents = events
+    .filter((e) => eventFilter === "All" || (e.provider || "Local") === eventFilter)
+    .slice()
+    .sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")));
+
   return (
     <AppShell
       active="Calendar"
@@ -438,9 +445,32 @@ export default function CalendarPage() {
               {editingId ? "Save changes" : "Add event"}
             </button>
           </form>
+          <div className="panel-header" style={{ marginTop: "20px", marginBottom: "12px", borderTop: "1px solid var(--line)", paddingTop: "16px" }}>
+            <div>
+              <h2>Scheduled events</h2>
+              <p>{filteredEvents.length} event{filteredEvents.length === 1 ? "" : "s"} shown</p>
+            </div>
+            <div className="filter-tabs">
+              {["All", "Local", "Google", "Microsoft"].map((name) => (
+                <button
+                  className={eventFilter === name ? "selected" : ""}
+                  key={name}
+                  onClick={() => setEventFilter(name)}
+                  type="button"
+                >
+                  {name}
+                  <b>
+                    {name === "All"
+                      ? events.length
+                      : events.filter((e) => (e.provider || "Local") === name).length}
+                  </b>
+                </button>
+              ))}
+            </div>
+          </div>
           <CalendarEventList
             selectedEventId={editingId}
-            events={[...events].sort((a, b) => (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")))}
+            events={filteredEvents}
             onEdit={editEvent}
             onDelete={deleteEvent}
           />
