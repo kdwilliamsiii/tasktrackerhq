@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
-import { recordAiUsage, listAiUsage, getAiUsageSummary } from "../../../../lib/db";
+import { recordAiUsage, listAiUsage, getAiUsageSummary, getMonthlyAiUsageForUser, getUserProfile } from "../../../../lib/db";
+import { getTierConfig, PRICING_TIERS } from "../../../../lib/ai-tiers";
 
 export async function POST(req: Request) {
   try {
@@ -36,7 +37,22 @@ export async function GET(req: Request) {
     const summary = await getAiUsageSummary(targetUser);
     const recentLogs = await listAiUsage(targetUser, 50);
 
-    return NextResponse.json({ summary, recentLogs });
+    // Get current user monthly stats and tier info
+    const profile = userId ? await getUserProfile(userId) : null;
+    const tier = profile?.tier || "free";
+    const tierConfig = getTierConfig(tier);
+    const monthlyStats = userId
+      ? await getMonthlyAiUsageForUser(userId)
+      : await getMonthlyAiUsageForUser("anonymous");
+
+    return NextResponse.json({
+      summary,
+      recentLogs,
+      tier,
+      tierConfig,
+      pricingTiers: PRICING_TIERS,
+      monthlyStats,
+    });
   } catch (error) {
     console.error("Error fetching AI usage:", error);
     return NextResponse.json({ error: "Failed to fetch AI usage" }, { status: 500 });

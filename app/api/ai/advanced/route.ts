@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
 import { recordAiUsage } from "../../../../lib/db";
+import { checkAiRateLimit, rateLimitResponse } from "../../../../lib/ai-limit-middleware";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,13 @@ export async function POST(req: Request) {
     }
 
     const requestedModel = model ?? "gpt-4.1";
+
+    // Enforce pricing tier rate limits & cost ceilings
+    const limitCheck = await checkAiRateLimit(userId, "advanced", requestedModel);
+    if (!limitCheck.allowed) {
+      return rateLimitResponse(limitCheck);
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
@@ -27,7 +35,7 @@ export async function POST(req: Request) {
         tokensOut: 0,
         costUsd: 0,
       });
-      return NextResponse.json({ reply });
+      return NextResponse.json({ reply, monthlyStats: limitCheck.monthlyStats });
     }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

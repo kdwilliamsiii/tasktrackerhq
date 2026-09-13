@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions, isAdmin } from "../../../lib/auth";
 import { addTask, listTasks, listCalendarEvents, listGpaClasses, addCalendarEvent, recordAiUsage } from "../../../lib/db";
 import { db } from "../../../lib/db";
+import { checkAiRateLimit } from "../../../lib/ai-limit-middleware";
 
 function getCorsHeaders(request: Request) {
   const origin = request.headers.get("origin") || "*";
@@ -160,6 +161,18 @@ export async function POST(request: Request) {
     calendarEvents: calendarEvents.slice(0, 15).map(({ id, title, date, time, provider }) => ({ id, title, date, time, provider })),
     courses: gpaClasses.map(c => ({ name: c.name, code: c.code, credits: c.credits }))
   });
+
+  // Check AI rate limit before dispatching complex reasoning to OpenAI
+  const limitCheck = await checkAiRateLimit(userId || "anonymous", "advanced", process.env.OPENAI_MODEL || "gpt-4.1");
+  if (!limitCheck.allowed) {
+    // If user exceeded limit, fall back to rule-based assistance with an informative banner
+    if (normalized.includes("schedule") || normalized.includes("calendar") || normalized.includes("meeting")) {
+      return jsonResponse(request, { reply: dueToday ? `You have ${dueToday} task${dueToday === 1 ? "" : "s"} due today. Check Calendar for your synced events.` : "Your task schedule is clear today. Check Calendar for synced events.", action: "open-calendar", href: "/calendar" });
+    }
+    if (overdue) return jsonResponse(request, { reply: `You have ${overdue} overdue task${overdue === 1 ? "" : "s"}. (Note: ${limitCheck.reason})` });
+    if (open.length) return jsonResponse(request, { reply: `You have ${open.length} open task${open.length === 1 ? "" : "s"}. (Note: ${limitCheck.reason})` });
+    return jsonResponse(request, { reply: `I am currently operating in basic local mode. ${limitCheck.reason}` });
+  }
 
   try {
     const reply = await askOpenAI(message, context, userId);

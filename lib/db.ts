@@ -23,6 +23,7 @@ export type UserProfile = {
   email?: string | null;
   image?: string | null;
   role: "admin" | "user";
+  tier?: "free" | "pro" | "enterprise";
   provider: string;
   providerAccountId: string;
   createdAt: string;
@@ -46,6 +47,15 @@ export async function updateUserProfileTheme(id: string, theme: Record<string, u
   const result = await db.collection<UserProfile>("users").findOneAndUpdate(
     { id },
     { $set: { theme, updatedAt: new Date().toISOString() } },
+    { returnDocument: "after", projection: { _id: 0 } }
+  );
+  return result;
+}
+
+export async function updateUserProfileTier(id: string, tier: "free" | "pro" | "enterprise") {
+  const result = await db.collection<UserProfile>("users").findOneAndUpdate(
+    { id },
+    { $set: { tier, updatedAt: new Date().toISOString() } },
     { returnDocument: "after", projection: { _id: 0 } }
   );
   return result;
@@ -272,4 +282,69 @@ export async function getAiUsageSummary(userId?: string) {
 
   return summary;
 }
+
+export function getCurrentMonthWindow(): { startIso: string; endIso: string; monthLabel: string } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const startDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+  const endDate = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999));
+  return {
+    startIso: startDate.toISOString(),
+    endIso: endDate.toISOString(),
+    monthLabel: startDate.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+  };
+}
+
+export async function getMonthlyAiUsageForUser(userId: string) {
+  const { startIso, endIso, monthLabel } = getCurrentMonthWindow();
+  const query = {
+    userId,
+    createdAt: { $gte: startIso, $lte: endIso },
+  };
+
+  const logs = await aiUsageCollection().find(query, { projection: { _id: 0 } }).toArray();
+
+  let fastCount = 0;
+  let advancedCount = 0;
+  let nanoCount = 0;
+  let totalCostUsd = 0;
+  let totalTokensIn = 0;
+  let totalTokensOut = 0;
+
+  for (const log of logs) {
+    totalTokensIn += log.tokensIn || 0;
+    totalTokensOut += log.tokensOut || 0;
+    totalCostUsd += log.costUsd || 0;
+
+    const modelName = (log.model || "").toLowerCase();
+    const featName = (log.feature || "").toLowerCase();
+
+    if (modelName.includes("nano")) {
+      nanoCount++;
+    } else if (
+      featName.includes("advanced") ||
+      featName.includes("tt-bot") ||
+      modelName.includes("gpt-4.1") ||
+      modelName.includes("gpt-4o") ||
+      modelName.includes("gpt-4")
+    ) {
+      advancedCount++;
+    } else {
+      fastCount++;
+    }
+  }
+
+  return {
+    monthLabel,
+    totalRequests: logs.length,
+    fastCount,
+    advancedCount,
+    nanoCount,
+    totalTokensIn,
+    totalTokensOut,
+    totalCostUsd: Number(totalCostUsd.toFixed(6)),
+  };
+}
+
 

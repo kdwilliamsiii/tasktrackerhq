@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../lib/auth";
-import { deleteUserProfile, getUserProfile, updateUserProfileTheme } from "../../../lib/db";
+import { deleteUserProfile, getUserProfile, updateUserProfileTheme, updateUserProfileTier } from "../../../lib/db";
 
 function getCorsHeaders(request: Request) {
   const origin = request.headers.get("origin") || "*";
@@ -26,7 +26,7 @@ export async function OPTIONS(request: Request) {
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return json(request, { theme: null });
+  if (!session?.user?.id) return json(request, { theme: null, user: null });
   const profile = await getUserProfile(session.user.id);
   return json(request, { user: profile, theme: (profile as { theme?: Record<string, unknown> } | null)?.theme || null });
 }
@@ -35,12 +35,21 @@ export async function PATCH(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return json(request, { error: "Authentication required" }, { status: 401 });
   const body = await request.json().catch(() => null);
-  if (!body?.theme || typeof body.theme !== "object") {
-    return json(request, { error: "Theme object required" }, { status: 400 });
+
+  if (body?.tier) {
+    if (!["free", "pro", "enterprise"].includes(body.tier)) {
+      return json(request, { error: "Invalid tier selection" }, { status: 400 });
+    }
+    const updated = await updateUserProfileTier(session.user.id, body.tier);
+    return json(request, { ok: true, user: updated });
   }
 
-  const updated = await updateUserProfileTheme(session.user.id, body.theme);
-  return json(request, { ok: true, theme: (updated as { theme?: Record<string, unknown> } | null)?.theme || body.theme });
+  if (body?.theme && typeof body.theme === "object") {
+    const updated = await updateUserProfileTheme(session.user.id, body.theme);
+    return json(request, { ok: true, theme: (updated as { theme?: Record<string, unknown> } | null)?.theme || body.theme });
+  }
+
+  return json(request, { error: "No valid update payload provided" }, { status: 400 });
 }
 
 export async function DELETE(request: Request) {
