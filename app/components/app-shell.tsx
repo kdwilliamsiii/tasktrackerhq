@@ -27,13 +27,13 @@ export function AppShell({ children, active, eyebrow, title, description, action
   const { data: session } = useSession();
   const { notifications, unreadCount, markAsRead, markAllAsRead, notify } = useNotifications();
   const userName = session?.user?.name || "Guest user";
-  const userInitials = userName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "?";
+  const userInitials = userName.split(/s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "?";
 
   useEffect(() => {
     const updateDate = () => setDateLabel(new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" }).format(new Date()));
     updateDate();
     const timer = window.setInterval(updateDate, 60 * 1000);
-    return () => window.clearTimeout(timer);
+    return () => window.clearInterval(timer);
   }, []);
 
   const handleRefresh = async () => {
@@ -97,14 +97,14 @@ export function AppShell({ children, active, eyebrow, title, description, action
       {/* Mobile Pull To Refresh Banner */}
       {pullDistance > 0 && (
         <div className="pull-refresh-indicator" style={{ height: pullDistance + "px" }}>
-          <span>{pullDistance >= 60 ? "Release to refresh ?" : "Pull down to refresh..."}</span>
+          <span>{pullDistance >= 60 ? "Release to refresh ↻" : "Pull down to refresh..."}</span>
         </div>
       )}
 
       {/* Mobile Top Header */}
       <div className="mobile-header">
         <button type="button" className="mobile-menu-btn" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
-          ?
+          ☰
         </button>
         <Link className="mobile-brand" href="/" onClick={() => setMobileNavOpen(false)}>
           <Image className="brand-logo" src="/tasktracker-logo.jpg" alt="TaskTrackerHQ logo" width={28} height={28} priority />
@@ -119,7 +119,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
             aria-label="Refresh app"
             title="Refresh TaskTrackerHQ"
           >
-            ?
+            ↻
           </button>
           <span className="workspace-avatar mobile-avatar">{userInitials}</span>
         </div>
@@ -166,7 +166,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
               void handleRefresh();
             }}
           >
-            <span className={"nav-icon" + (refreshing ? " spinning" : "")}>?</span>
+            <span className={"nav-icon" + (refreshing ? " spinning" : "")}>↻</span>
             <span>Refresh App</span>
           </button>
         </nav>

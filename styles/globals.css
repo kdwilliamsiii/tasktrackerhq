@@ -270,11 +270,23 @@ body {
 
 .mobile-close-btn {
   display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 20px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--navy) 10%, var(--surface));
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 800;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-close-btn:active {
+  background: color-mix(in srgb, var(--navy) 20%, var(--surface));
+  transform: scale(0.95);
 }
 
 @media (max-width: 860px) {
@@ -350,7 +362,7 @@ body {
   }
 
   .mobile-close-btn {
-    display: block;
+    display: flex;
   }
 
   .topbar {
