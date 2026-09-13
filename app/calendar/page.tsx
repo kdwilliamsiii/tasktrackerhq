@@ -65,6 +65,31 @@ export default function CalendarPage() {
     const timer = window.setTimeout(() => {
       void loadEvents();
     }, 0);
+    const autoSyncGoogle = async () => {
+      try {
+        const syncRes = await fetch("/api/calendar-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ provider: "google", monthsBack: Number(syncMonthsBack) }),
+        });
+        if (syncRes.ok) {
+          const syncData = await syncRes.json();
+          if (syncData.synced && Array.isArray(syncData.events)) {
+            const googleEvents = syncData.events.map((e: EventItem) => ({ ...e, provider: "Google" }));
+            setEvents((current) => {
+              const kept = current.filter((item) => item.provider !== "Google");
+              const next = [...kept, ...googleEvents];
+              localStorage.setItem("tasktracker-events", JSON.stringify(next));
+              return next;
+            });
+          }
+        }
+      } catch {
+        // Silent background sync
+      }
+    };
+    void autoSyncGoogle();
+
     const handleUpdate = () => { void loadEvents(); };
     window.addEventListener("tasktracker-data-changed", handleUpdate);
     window.addEventListener("tasktracker-quick-add", handleUpdate);
@@ -73,6 +98,7 @@ export default function CalendarPage() {
       window.removeEventListener("tasktracker-data-changed", handleUpdate);
       window.removeEventListener("tasktracker-quick-add", handleUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -71,14 +71,26 @@ export async function updateGoogleCalendarEvent(
   const current = await getRes.json();
 
   if (updates.title) current.summary = updates.title;
+
   if (updates.date) {
+    const dateStr = updates.date.slice(0, 10);
     if (updates.time) {
-      current.start = { dateTime: updates.time };
-      const endDate = new Date(new Date(updates.time).getTime() + 3600000);
-      current.end = { dateTime: endDate.toISOString() };
+      let startIso = updates.time;
+      if (!startIso.includes("T")) {
+        startIso = dateStr + "T" + updates.time + ":00.000Z";
+      }
+      const startTime = new Date(startIso).getTime();
+      const endIso = new Date(Number.isNaN(startTime) ? Date.now() + 3600000 : startTime + 3600000).toISOString();
+      current.start = { dateTime: startIso };
+      current.end = { dateTime: endIso };
     } else {
-      current.start = { date: updates.date.slice(0, 10) };
-      current.end = { date: updates.date.slice(0, 10) };
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const nextDay = new Date(y, m - 1, d + 1);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const endDateStr = nextDay.getFullYear() + "-" + pad(nextDay.getMonth() + 1) + "-" + pad(nextDay.getDate());
+
+      current.start = { date: dateStr };
+      current.end = { date: endDateStr };
     }
   }
 
