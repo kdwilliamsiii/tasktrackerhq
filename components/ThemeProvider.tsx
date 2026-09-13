@@ -80,7 +80,7 @@ function normalizeColors(colors: Partial<ThemeColors>): ThemeColors {
 
 function applyColors(colors: ThemeColors) {
   const root = document.documentElement;
-  for (const [name, value] of Object.entries(colors)) root.style.setProperty(`--${name}`, value);
+  for (const [name, value] of Object.entries(colors)) root.style.setProperty("--" + name, value);
 }
 
 function applyFont(font: FontChoice) {
@@ -89,7 +89,7 @@ function applyFont(font: FontChoice) {
 }
 
 function applyBarFont(name: "sidebar" | "topbar", font: FontChoice) {
-  document.documentElement.style.setProperty(`--font-${name}`, font.family);
+  document.documentElement.style.setProperty("--font-" + name, font.family);
 }
 
 function applyOptions(options: ThemeOptions) {
@@ -134,32 +134,63 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [options, hydrated]);
 
   useEffect(() => {
-    const loadTheme = () => {
+    const applyParsedTheme = (parsed: {
+      colors?: ThemeColors;
+      preset?: string;
+      font?: string;
+      sidebarFont?: string;
+      topbarFont?: string;
+      options?: ThemeOptions;
+    }) => {
+      const savedColors = parsed.colors ? normalizeColors(parsed.colors) : defaultTheme.colors;
+      const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
+      const savedSidebarFont = fontChoices.find((choice) => choice.id === parsed.sidebarFont);
+      const savedTopbarFont = fontChoices.find((choice) => choice.id === parsed.topbarFont);
+      setColors(savedColors);
+      setSelectedPreset(parsed.preset || "custom");
+      setFontChoice(savedFont || fontChoices[0]);
+      setSidebarFontChoice(savedSidebarFont || fontChoices[0]);
+      setTopbarFontChoice(savedTopbarFont || fontChoices[0]);
+      setOptions({ ...defaultOptions, ...(parsed.options || {}) });
+      applyColors(savedColors);
+      applyFont(savedFont || fontChoices[0]);
+      applyBarFont("sidebar", savedSidebarFont || fontChoices[0]);
+      applyBarFont("topbar", savedTopbarFont || fontChoices[0]);
+      applyOptions({ ...defaultOptions, ...(parsed.options || {}) });
+    };
+
+    const loadTheme = async () => {
       const saved = localStorage.getItem("tasktracker-theme");
-      if (!saved) {
-        setHydrated(true);
-        return;
+      if (saved) {
+        try {
+          applyParsedTheme(JSON.parse(saved));
+        } catch {
+          // ignore
+        }
       }
+      setHydrated(true);
+
       try {
-        const parsed = JSON.parse(saved) as { colors?: ThemeColors; preset?: string; font?: string; sidebarFont?: string; topbarFont?: string; options?: ThemeOptions };
-        const savedColors = parsed.colors ? normalizeColors(parsed.colors) : defaultTheme.colors;
-        const savedFont = fontChoices.find((choice) => choice.id === parsed.font);
-        const savedSidebarFont = fontChoices.find((choice) => choice.id === parsed.sidebarFont);
-        const savedTopbarFont = fontChoices.find((choice) => choice.id === parsed.topbarFont);
-        setColors(savedColors);
-        setSelectedPreset(parsed.preset || "custom");
-        setFontChoice(savedFont || fontChoices[0]);
-        setSidebarFontChoice(savedSidebarFont || fontChoices[0]);
-        setTopbarFontChoice(savedTopbarFont || fontChoices[0]);
-        setOptions({ ...defaultOptions, ...(parsed.options || {}) });
+        const res = await fetch("/api/profile", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.theme && typeof data.theme === "object") {
+            applyParsedTheme(data.theme);
+            localStorage.setItem("tasktracker-theme", JSON.stringify(data.theme));
+          }
+        }
       } catch {
-        localStorage.removeItem("tasktracker-theme");
-      } finally {
-        setHydrated(true);
+        // Offline
       }
     };
-    const themeLoad = window.setTimeout(loadTheme, 0);
-    return () => window.clearTimeout(themeLoad);
+
+    const themeLoad = window.setTimeout(() => { void loadTheme(); }, 0);
+    const handleDataChanged = () => { void loadTheme(); };
+    window.addEventListener("tasktracker-data-changed", handleDataChanged);
+    return () => {
+      window.clearTimeout(themeLoad);
+      window.removeEventListener("tasktracker-data-changed", handleDataChanged);
+    };
   }, []);
 
   const save = useCallback((next: ThemeColors, preset: string, nextFont = font, nextOptions = options, nextSidebarFont = sidebarFont, nextTopbarFont = topbarFont) => {
@@ -173,7 +204,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyFont(nextFont);
     applyBarFont("sidebar", nextSidebarFont);
     applyBarFont("topbar", nextTopbarFont);
-    localStorage.setItem("tasktracker-theme", JSON.stringify({ colors: next, preset, font: nextFont.id, sidebarFont: nextSidebarFont.id, topbarFont: nextTopbarFont.id, options: nextOptions }));
+
+    const payload = { colors: next, preset, font: nextFont.id, sidebarFont: nextSidebarFont.id, topbarFont: nextTopbarFont.id, options: nextOptions };
+    localStorage.setItem("tasktracker-theme", JSON.stringify(payload));
+
+    void fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme: payload }),
+    }).catch(() => {
+      // Offline fallback
+    });
   }, [font, options, sidebarFont, topbarFont]);
 
   const value = useMemo<ThemeContextValue>(() => ({
