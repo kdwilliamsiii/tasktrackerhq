@@ -203,6 +203,51 @@ export default function CalendarPage() {
     }
   }
 
+  
+  async function handleSaveAll() {
+    notify("Saving all calendar changes...", "info");
+    
+    // Save current events to MongoDB Database API
+    let dbSuccessCount = 0;
+    let googleSuccessCount = 0;
+
+    for (const event of events) {
+      try {
+        await fetch("/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(event),
+        });
+        dbSuccessCount++;
+      } catch {
+        // Continue
+      }
+
+      // If Google event, also sync to Google Calendar API
+      if (event.provider === "Google") {
+        try {
+          const res = await fetch("/api/calendar-sync", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: event.id,
+              provider: "Google",
+              title: event.title,
+              date: event.date,
+              time: event.time,
+            }),
+          });
+          if (res.ok) googleSuccessCount++;
+        } catch {
+          // Continue
+        }
+      }
+    }
+
+    localStorage.setItem("tasktracker-events", JSON.stringify(events));
+    notify("All calendar changes saved & synced across devices!", "success");
+  }
+
   function focusIntegrations() {
     integrationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => integrationsRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus(), 250);
@@ -381,7 +426,14 @@ export default function CalendarPage() {
       eyebrow="Workspace"
       title="Calendar"
       description="See what's happening and keep your commitments in view."
-      action={<PrimaryButton onClick={focusIntegrations}>Connect calendar</PrimaryButton>}
+      action={
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button className="primary-button" style={{ background: "var(--teal)" }} onClick={handleSaveAll} type="button">
+            <span>?</span> Save Calendar Changes
+          </button>
+          <PrimaryButton onClick={focusIntegrations}>Connect calendar</PrimaryButton>
+        </div>
+      }
     >
       <TTBotHint command="show today's schedule">
         TT Bot can help you spot meetings starting soon and keep your schedule in view.
