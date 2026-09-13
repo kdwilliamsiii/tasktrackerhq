@@ -42,7 +42,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
   const { data: session } = useSession();
   const { notifications, unreadCount, markAsRead, markAllAsRead, notify } = useNotifications();
   const userName = session?.user?.name || "Guest user";
-  const userInitials = userName.split(/s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "?";
+  const userInitials = userName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "TT";
 
   useEffect(() => {
     const updateDate = () => setDateLabel(new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" }).format(new Date()));

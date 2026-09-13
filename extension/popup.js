@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="task-item-meta">
               <span class="p-tag p-${t.priority.toLowerCase()}">${t.priority}</span>
               ${t.category ? `<span>${escapeHtml(t.category)}</span>` : ""}
-              ${t.dueDate ? `<span>Ὄ5 ${t.dueDate}</span>` : ""}
+              ${t.dueDate ? `<span>📅 ${t.dueDate}</span>` : ""}
             </div>
           </div>
           <button class="task-delete-btn" title="Delete">✕</button>

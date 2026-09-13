@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { CalendarListEvent } from "./CalendarEventList";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -148,9 +149,13 @@ export default function MonthCalendar({
     <section className="panel calendar-shell">
       <div className="calendar-toolbar">
         <div className="month-nav">
-          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>?</button>
+          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>
+            <ChevronLeft size={16} />
+          </button>
           <strong>{monthLabel}</strong>
-          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>?</button>
+          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>
+            <ChevronRight size={16} />
+          </button>
         </div>
         <div className="calendar-actions">
           <button className="filter-button" type="button" onClick={goToToday}>Today</button>

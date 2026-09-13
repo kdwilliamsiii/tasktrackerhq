@@ -9,6 +9,7 @@ import TaskProgressWidget from "../components/TaskProgressWidget";
 import DailyOverviewWidget from "../components/DailyOverviewWidget";
 import DashboardCard from "../components/DashboardCard";
 import TTBotHint from "../components/TTBotHint";
+import { ArrowRight } from "lucide-react";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
@@ -145,7 +146,10 @@ export default function DashboardPage() {
               <span className="dashboard-kicker">PRIORITIES</span>
               <h2>Upcoming tasks</h2>
             </div>
-            <Link className="dashboard-link" href="/tasks">View all ?</Link>
+            <Link className="dashboard-link" href="/tasks">
+              <span>View all</span>
+              <ArrowRight size={13} style={{ display: "inline", marginLeft: 4, verticalAlign: "-1px" }} />
+            </Link>
           </div>
           {openTasks.map((task) => (
             <div className="dashboard-task" key={task.id} draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", task.title); e.dataTransfer.effectAllowed = "copy"; }}>
@@ -154,7 +158,7 @@ export default function DashboardPage() {
                 <strong>{task.title}</strong>
                 <small>{task.priority} priority</small>
               </div>
-              <span className="dashboard-task-arrow">?</span>
+              <span className="dashboard-task-arrow">→</span>
             </div>
           ))}
           {!openTasks.length && <p className="dashboard-empty">You&apos;re all caught up. Add a task to keep moving.</p>}
@@ -165,7 +169,10 @@ export default function DashboardPage() {
               <span className="dashboard-kicker">SCHEDULE</span>
               <h2>Upcoming events</h2>
             </div>
-            <Link className="dashboard-link" href="/calendar">Calendar ?</Link>
+            <Link className="dashboard-link" href="/calendar">
+              <span>Calendar</span>
+              <ArrowRight size={13} style={{ display: "inline", marginLeft: 4, verticalAlign: "-1px" }} />
+            </Link>
           </div>
           {events.map((event) => {
             const eventDate = new Date(event.date.includes("T") ? event.date : event.date + "T00:00:00");
@@ -178,7 +185,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <strong>{event.title}</strong>
-                  <small>{eventTime + " ? " + (event.provider || "Local") + (event.location ? " ? " + event.location : "")}</small>
+                  <small>{eventTime + " • " + (event.provider || "Local") + (event.location ? " • " + event.location : "")}</small>
                 </div>
               </div>
             );
