@@ -1203,3 +1203,52 @@ html, body, .app-frame, .main-content {
     width: 100% !important;
   }
 }
+
+/* Mobile PWA Panel Padding, Filter Tabs, & Integration Menu Responsiveness */
+@media (max-width: 760px) {
+  .panel {
+    padding: 16px 14px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .panel-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-tabs {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+  }
+
+  .filter-tabs button {
+    flex-shrink: 0 !important;
+  }
+
+  .calendar-shell .calendar-toolbar {
+    padding: 12px 14px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .calendar-event-list {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    margin-top: 12px !important;
+  }
+}
