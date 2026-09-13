@@ -156,7 +156,8 @@ export default function CalendarPage() {
       : [...events, updated];
 
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     resetDraft();
     if (target?.provider !== "Google") {
       notify(editingId ? "Calendar event updated." : "Calendar event added.", "success");
@@ -197,7 +198,6 @@ export default function CalendarPage() {
       return;
     }
 
-    // Delete from Database API
     try {
       await fetch("/api/events?id=" + encodeURIComponent(event.id), {
         method: "DELETE",
@@ -208,15 +208,13 @@ export default function CalendarPage() {
 
     const next = events.filter((item) => item.id !== event.id);
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     if (editingId === event.id) resetDraft();
     if (event.provider !== "Google") {
       notify("Calendar event deleted.", "info");
     }
   }
-
-  
-
 
   function focusIntegrations() {
     integrationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -251,7 +249,7 @@ export default function CalendarPage() {
     }
   }
 
-    async function handleExternalDrop(e: React.DragEvent, dateKey: string) {
+  async function handleExternalDrop(e: React.DragEvent, dateKey: string) {
     e.preventDefault();
     const textData = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("text/uri-list") || "";
     const htmlData = e.dataTransfer.getData("text/html");
@@ -296,7 +294,8 @@ export default function CalendarPage() {
 
     const next = [...events, newEvent];
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     notify('Created event "' + (title.length > 30 ? title.slice(0, 30) + "..." : title) + '" on ' + dateKey + ".", "success");
   }
 
@@ -336,7 +335,6 @@ export default function CalendarPage() {
         notify("Failed to reschedule in Google Calendar.", "error");
       }
     } else {
-      // Save local move to database
       try {
         await fetch("/api/events", {
           method: "PATCH",
@@ -344,13 +342,14 @@ export default function CalendarPage() {
           body: JSON.stringify({ id: target.id, date: dateKey, time }),
         });
       } catch {
-        // Offline fallback
+        // Offline
       }
     }
 
     const next = events.map((event) => (event.id === eventId ? { ...event, date: dateKey, time } : event));
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     if (target.provider !== "Google") {
       notify('"' + target.title + '" moved to ' + dateKey + ".", "success");
     }
@@ -377,9 +376,8 @@ export default function CalendarPage() {
       const keptEvents = events.filter((event) => event.provider !== providerLabel);
       const next = [...keptEvents, ...syncedEvents];
       setEvents(next);
-      localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
-
-
+      localStorage.setItem("tasktracker-events", JSON.stringify(next));
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
 
       setMessage(provider + " calendar synced (" + syncedEvents.length + " events).");
       notify(provider + " calendar updated.", "success");
@@ -390,7 +388,6 @@ export default function CalendarPage() {
     }
   }
 
-  
   const todayKey = new Date().toISOString().slice(0, 10);
   const filteredEvents = events
     .filter((e) => {
@@ -412,6 +409,7 @@ export default function CalendarPage() {
       <TTBotHint command="show today's schedule">
         TT Bot can help you spot meetings starting soon and keep your schedule in view.
       </TTBotHint>
+
       <MonthCalendar
         events={events}
         selectedDate={draft.date}
@@ -421,7 +419,9 @@ export default function CalendarPage() {
         onExternalDrop={handleExternalDrop}
         onEventDelete={handleTrashDelete}
       />
-      <div className="dashboard-grid">
+
+      <div className="calendar-sections-grid">
+        {/* Add/Edit Event Section */}
         <section className="panel" ref={formRef}>
           <div className="panel-header">
             <div>
@@ -470,7 +470,11 @@ export default function CalendarPage() {
               {editingId ? "Save changes" : "Add event"}
             </button>
           </form>
-          <div className="panel-header" style={{ marginTop: "20px", marginBottom: "12px", borderTop: "1px solid var(--line)", paddingTop: "16px" }}>
+        </section>
+
+        {/* Scheduled Events List Section */}
+        <section className="panel calendar-events-panel">
+          <div className="panel-header calendar-events-header">
             <div>
               <h2>Scheduled events</h2>
               <p>{filteredEvents.length} event{filteredEvents.length === 1 ? "" : "s"} shown</p>
@@ -501,11 +505,18 @@ export default function CalendarPage() {
           />
           {!events.length && <p className="empty-state">No events yet.</p>}
         </section>
-        <section className="panel" ref={integrationsRef} tabIndex={-1}>
-          <h2>Calendar integrations</h2>
-          <p className="panel-subtitle">Connect a provider to sync events.</p>
-          <label className="sync-range-label">
-            Sync events from the last
+
+        {/* Calendar Integrations Section */}
+        <section className="panel calendar-integrations-panel" ref={integrationsRef} tabIndex={-1}>
+          <div className="panel-header">
+            <div>
+              <h2>Calendar integrations</h2>
+              <p>Connect a provider to sync events into your workspace.</p>
+            </div>
+          </div>
+
+          <div className="sync-range-box">
+            <span className="sync-range-title">Sync events from the last</span>
             <select
               value={syncMonthsBack}
               onChange={(e) => setSyncMonthsBack(e.target.value)}
@@ -516,19 +527,40 @@ export default function CalendarPage() {
               <option value="6">6 months</option>
               <option value="12">1 year</option>
             </select>
-          </label>
-          <div className="integration-row">
-            <span>Google Calendar</span>
-            <button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>
-              {syncing === "google" ? "Syncing..." : "Sync"}
-            </button>
           </div>
-          <div className="integration-row">
-            <span>Microsoft Outlook</span>
-            <button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>
-              {syncing === "microsoft" ? "Syncing..." : "Sync"}
-            </button>
+
+          <div className="integration-cards-grid">
+            <div className="integration-card">
+              <div className="integration-info">
+                <strong>Google Calendar</strong>
+                <small>2-Way sync &amp; rescheduling</small>
+              </div>
+              <button
+                className="filter-button sync-btn"
+                disabled={Boolean(syncing)}
+                onClick={() => sync("google")}
+                type="button"
+              >
+                {syncing === "google" ? "Syncing..." : "Sync Now"}
+              </button>
+            </div>
+
+            <div className="integration-card">
+              <div className="integration-info">
+                <strong>Microsoft Outlook</strong>
+                <small>1-Way read calendar sync</small>
+              </div>
+              <button
+                className="filter-button sync-btn"
+                disabled={Boolean(syncing)}
+                onClick={() => sync("microsoft")}
+                type="button"
+              >
+                {syncing === "microsoft" ? "Syncing..." : "Sync Now"}
+              </button>
+            </div>
           </div>
+
           {message && <p className="form-success" role="status">{message}</p>}
         </section>
       </div>

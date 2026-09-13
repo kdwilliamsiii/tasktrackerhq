@@ -1252,3 +1252,205 @@ html, body, .app-frame, .main-content {
     margin-top: 12px !important;
   }
 }
+
+/* Redesigned Responsive Calendar Layout & Cards */
+.calendar-sections-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.calendar-events-panel, .calendar-integrations-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.calendar-events-header {
+  margin-bottom: 16px;
+}
+
+.calendar-event-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.event-list-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.event-list-card:hover {
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--line));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--navy) 6%, transparent);
+}
+
+.selected-event-card {
+  border-color: var(--teal) !important;
+  border-left: 4px solid var(--teal) !important;
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface)) !important;
+}
+
+.event-list-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.event-tag-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-provider-badge {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tag-google {
+  color: #557fa8;
+  background: #ebf2fa;
+}
+
+.tag-microsoft {
+  color: #c37151;
+  background: #fff0e8;
+}
+
+.tag-local {
+  color: #398f81;
+  background: #e8f6f2;
+}
+
+.event-date-chip {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.event-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.event-list-card-title strong {
+  color: var(--navy);
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.event-list-card-details {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+
+.sync-range-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--teal) 4%, var(--surface));
+}
+
+.sync-range-title {
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sync-range-box select {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--foreground);
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.integration-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.integration-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.integration-info strong {
+  display: block;
+  color: var(--navy);
+  font-size: 12px;
+}
+
+.integration-info small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.sync-btn {
+  flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  .integration-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .integration-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    text-align: left !important;
+  }
+
+  .sync-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .sync-range-box {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .sync-range-box select {
+    width: 100% !important;
+  }
+}
