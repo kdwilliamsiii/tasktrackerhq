@@ -89,7 +89,7 @@ export default function DashboardPage() {
       <div className="dashboard-grid dashboard-content-grid">
         <section className="dashboard-panel">
           <div className="dashboard-panel-heading"><div><span className="dashboard-kicker">PRIORITIES</span><h2>Upcoming tasks</h2></div><Link className="dashboard-link" href="/tasks">View all →</Link></div>
-          {openTasks.map((task) => <div className="dashboard-task" key={task.id}><span className={`dashboard-task-dot ${task.priority.toLowerCase()}`} /><div><strong>{task.title}</strong><small>{task.priority} priority</small></div><span className="dashboard-task-arrow">→</span></div>)}
+          {openTasks.map((task) => <div className="dashboard-task" key={task.id} draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", task.title); e.dataTransfer.effectAllowed = "copy"; }}><span className={`dashboard-task-dot ${task.priority.toLowerCase()}`} /><div><strong>{task.title}</strong><small>{task.priority} priority</small></div><span className="dashboard-task-arrow">→</span></div>)}
           {!openTasks.length && <p className="dashboard-empty">You&apos;re all caught up. Add a task to keep moving.</p>}
         </section>
         <section className="dashboard-panel">

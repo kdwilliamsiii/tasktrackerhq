@@ -29,7 +29,7 @@ function startOfCalendar(year: number, month: number) {
   return start;
 }
 
-export default function MonthCalendar({ events, selectedDate, onSelectDate, onEventClick, onEventDrop }: { events: CalendarListEvent[]; selectedDate: string; onSelectDate: (dateKey: string) => void; onEventClick?: (event: CalendarListEvent) => void; onEventDrop?: (eventId: string, dateKey: string) => void }) {
+export default function MonthCalendar({ events, selectedDate, onSelectDate, onEventClick, onEventDrop, onExternalDrop }: { events: CalendarListEvent[]; selectedDate: string; onSelectDate: (dateKey: string) => void; onEventClick?: (event: CalendarListEvent) => void; onEventDrop?: (eventId: string, dateKey: string) => void; onExternalDrop?: (e: React.DragEvent, dateKey: string) => void }) {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => {
     const base = selectedDate ? new Date(`${selectedDate}T00:00:00`) : today;
@@ -82,7 +82,13 @@ export default function MonthCalendar({ events, selectedDate, onSelectDate, onEv
     e.preventDefault();
     setDragOverDate(null);
     const eventId = e.dataTransfer.getData("text/plain");
-    if (eventId) onEventDrop?.(eventId, dateKey);
+    // If eventId matches an existing event ID in our list, move it
+    if (eventId && events.some((event) => event.id === eventId)) {
+      onEventDrop?.(eventId, dateKey);
+    } else {
+      // External drag and drop (highlighted text, external calendar item, URL, task)
+      onExternalDrop?.(e, dateKey);
+    }
   }
 
   return (
