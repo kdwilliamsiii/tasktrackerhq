@@ -1,4 +1,5 @@
 "use client";
+import { LayoutDashboard, CheckSquare, Bell } from "lucide-react";
 
 import { fontChoices, themePresets, useTheme, type ThemeColors, type ThemeOptions } from "./ThemeProvider";
 
@@ -87,16 +88,16 @@ export default function ThemeCustomizer() {
         <div className="preview-mini-sidebar" style={{ background: colors.sidebar, color: colors.sidebarText, fontFamily: sidebarFont.family }}>
           <strong style={{ color: colors.sidebarText }}>TaskTrackerHQ</strong>
           <span className="preview-mini-nav active" style={{ background: colors.sidebarActive, color: colors.sidebarText }}>
-            ? Overview
+            <LayoutDashboard size={10} /> Overview
           </span>
           <span className="preview-mini-nav" style={{ color: colors.sidebarText }}>
-            ? Tasks
+            <CheckSquare size={10} /> Tasks
           </span>
         </div>
         <div className="preview-mini-main">
           <div className="preview-mini-topbar" style={{ background: colors.topbar, color: colors.topbarText, fontFamily: topbarFont.family, borderColor: colors.line }}>
             <span>Workspace / Dashboard</span>
-            <span className="preview-mini-bell" style={{ background: colors.orange }}>?</span>
+            <span className="preview-mini-bell" style={{ background: colors.orange }}><Bell size={10} /></span>
           </div>
           <div className="preview-mini-content">
             <div className="preview-mini-panel" style={{ background: colors.surface, borderColor: colors.line }}>
