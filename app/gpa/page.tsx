@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
+import { Download, Calculator, Sparkles } from "lucide-react";
 
 type CourseClass = {
   id: string;
@@ -13,6 +14,7 @@ type CourseClass = {
   pointsEarned: number;
   currentPossible: number;
   totalPossible: number;
+  isHonors?: boolean;
 };
 
 type ClassDraft = {
@@ -22,6 +24,7 @@ type ClassDraft = {
   pointsEarned: string;
   currentPossible: string;
   totalPossible: string;
+  isHonors: boolean;
 };
 
 const emptyDraft: ClassDraft = {
@@ -31,19 +34,21 @@ const emptyDraft: ClassDraft = {
   pointsEarned: "",
   currentPossible: "",
   totalPossible: "",
+  isHonors: false,
 };
 
-function getLetterGrade(percentage: number): { letter: string; gpaPoints: number } {
-  if (percentage >= 93) return { letter: "A", gpaPoints: 4.0 };
-  if (percentage >= 90) return { letter: "A-", gpaPoints: 3.7 };
-  if (percentage >= 87) return { letter: "B+", gpaPoints: 3.3 };
-  if (percentage >= 83) return { letter: "B", gpaPoints: 3.0 };
-  if (percentage >= 80) return { letter: "B-", gpaPoints: 2.7 };
-  if (percentage >= 77) return { letter: "C+", gpaPoints: 2.3 };
-  if (percentage >= 73) return { letter: "C", gpaPoints: 2.0 };
-  if (percentage >= 70) return { letter: "C-", gpaPoints: 1.7 };
-  if (percentage >= 67) return { letter: "D+", gpaPoints: 1.3 };
-  if (percentage >= 60) return { letter: "D", gpaPoints: 1.0 };
+function getLetterGrade(percentage: number, isHonors = false): { letter: string; gpaPoints: number } {
+  const bonus = isHonors ? 0.5 : 0;
+  if (percentage >= 93) return { letter: "A", gpaPoints: 4.0 + bonus };
+  if (percentage >= 90) return { letter: "A-", gpaPoints: 3.7 + bonus };
+  if (percentage >= 87) return { letter: "B+", gpaPoints: 3.3 + bonus };
+  if (percentage >= 83) return { letter: "B", gpaPoints: 3.0 + bonus };
+  if (percentage >= 80) return { letter: "B-", gpaPoints: 2.7 + bonus };
+  if (percentage >= 77) return { letter: "C+", gpaPoints: 2.3 + bonus };
+  if (percentage >= 73) return { letter: "C", gpaPoints: 2.0 + bonus };
+  if (percentage >= 70) return { letter: "C-", gpaPoints: 1.7 + bonus };
+  if (percentage >= 67) return { letter: "D+", gpaPoints: 1.3 + bonus };
+  if (percentage >= 60) return { letter: "D", gpaPoints: 1.0 + bonus };
   return { letter: "F", gpaPoints: 0.0 };
 }
 
@@ -53,6 +58,7 @@ export default function GpaPage() {
   const [draft, setDraft] = useState<ClassDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [targetLetter, setTargetLetter] = useState("A");
   const { notify } = useNotifications();
 
   const loadClasses = async () => {
@@ -109,7 +115,7 @@ export default function GpaPage() {
     }
   }
 
-  function updateDraft(field: keyof ClassDraft, value: string) {
+  function updateDraft(field: keyof ClassDraft, value: string | boolean) {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
@@ -122,6 +128,7 @@ export default function GpaPage() {
       pointsEarned: String(item.pointsEarned),
       currentPossible: String(item.currentPossible),
       totalPossible: String(item.totalPossible),
+      isHonors: Boolean(item.isHonors),
     });
     setError("");
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -161,6 +168,7 @@ export default function GpaPage() {
       pointsEarned,
       currentPossible: currentPossible > 0 ? currentPossible : totalPossible,
       totalPossible: totalPossible > 0 ? totalPossible : currentPossible,
+      isHonors: draft.isHonors,
     };
 
     try {
@@ -201,6 +209,32 @@ export default function GpaPage() {
     notify("Class deleted.", "info");
   }
 
+  function exportGpaCsv() {
+    if (!classes.length) return;
+    const headers = ["Course Name", "Code", "Credits", "Points Earned", "Current Possible", "Term Total", "Current %", "Letter Grade", "Honors"];
+    const rows = evaluatedClasses.map(c => [
+      `"${c.name.replace(/"/g, '""')}"`,
+      c.code,
+      c.credits,
+      c.pointsEarned,
+      c.currentPossible,
+      c.totalPossible,
+      c.currentPercentage.toFixed(1) + "%",
+      c.letter,
+      c.isHonors ? "Yes" : "No"
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasktracker-gpa-report-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    notify("GPA report exported to CSV.", "success");
+  }
+
   // Calculate Cumulative Current GPA & Total Course Stats
   const { evaluatedClasses, currentGpa, currentPercentage, totalEarnedPoints, totalCurrentPossible, totalCredits } = useMemo(() => {
     let qPointsSum = 0;
@@ -210,7 +244,7 @@ export default function GpaPage() {
 
     const list = classes.map((item) => {
       const currentPct = item.currentPossible > 0 ? (item.pointsEarned / item.currentPossible) * 100 : 0;
-      const { letter, gpaPoints } = getLetterGrade(currentPct);
+      const { letter, gpaPoints } = getLetterGrade(currentPct, item.isHonors);
       const qualityPoints = gpaPoints * item.credits;
 
       return { item, currentPct, letter, gpaPoints, qualityPoints };
@@ -243,8 +277,19 @@ export default function GpaPage() {
     };
   }, [classes]);
 
+  // Target threshold percentages
+  const targetThresholds: Record<string, number> = {
+    "A": 93,
+    "A-": 90,
+    "B+": 87,
+    "B": 83,
+    "B-": 80,
+    "C+": 77,
+    "C": 73
+  };
+
   return (
-    <AppShell active="GPA Tracker" eyebrow="Workspace" title="GPA Tracker" description="Track points graded so far vs. total course points to stay on top of your current GPA.">
+    <AppShell active="GPA Tracker" eyebrow="Workspace" title="GPA Tracker" description="Track graded points vs. term points with honors weighting and grade projection simulations.">
       <div className="gpa-summary-hero">
         <div className="gpa-main-stat">
           <span className="gpa-kicker">CURRENT CUMULATIVE GPA</span>
@@ -344,6 +389,15 @@ export default function GpaPage() {
               required
             />
           </label>
+          <label className="task-field" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8, marginTop: 22 }}>
+            <input
+              type="checkbox"
+              checked={draft.isHonors}
+              onChange={(e) => updateDraft("isHonors", e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: "var(--teal)" }}
+            />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>Honors / AP Weight (+0.5 GPA)</span>
+          </label>
           <button className="primary-button task-save" type="submit">
             {editingId ? "Save changes" : "Add class"}
           </button>
@@ -357,40 +411,75 @@ export default function GpaPage() {
             <h2>Your classes</h2>
             <p>{classes.length} course{classes.length === 1 ? "" : "s"} tracked</p>
           </div>
+          <div className="task-header-actions">
+            <button
+              type="button"
+              className="task-action-btn"
+              onClick={exportGpaCsv}
+              title="Export GPA report to CSV"
+            >
+              <Download size={13} /> Export Report
+            </button>
+          </div>
         </div>
 
         {evaluatedClasses.length ? (
           <div className="gpa-class-list">
-            {evaluatedClasses.map((item) => (
-              <article className="gpa-class-card" key={item.id}>
-                <div className="gpa-class-badge">
-                  <strong>{item.letter}</strong>
-                  <small>{item.gpaPoints.toFixed(1)} GPA</small>
-                </div>
-                <div className="gpa-class-body">
-                  <div className="gpa-class-title-row">
-                    <strong>{item.name}</strong>
-                    <span className="gpa-course-code">{item.code} ({item.credits} cr)</span>
+            {evaluatedClasses.map((item) => {
+              const remainingPoints = Math.max(0, item.totalPossible - item.currentPossible);
+              const targetPct = targetThresholds[targetLetter] || 90;
+              const pointsNeeded = (targetPct / 100) * item.totalPossible - item.pointsEarned;
+              const pctNeededOnRemaining = remainingPoints > 0 ? (pointsNeeded / remainingPoints) * 100 : null;
+
+              return (
+                <article className="gpa-class-card" key={item.id}>
+                  <div className="gpa-class-badge">
+                    <strong>{item.letter}</strong>
+                    <small>{item.gpaPoints.toFixed(1)} GPA</small>
                   </div>
-                  <div className="gpa-progress-bar">
-                    <span style={{ width: Math.min(100, Math.max(0, item.currentPercentage)) + "%" }} />
+                  <div className="gpa-class-body">
+                    <div className="gpa-class-title-row">
+                      <strong>{item.name}</strong>
+                      <span className="gpa-course-code">
+                        {item.code} ({item.credits} cr){item.isHonors ? " • Honors" : ""}
+                      </span>
+                    </div>
+                    <div className="gpa-progress-bar">
+                      <span style={{ width: Math.min(100, Math.max(0, item.currentPercentage)) + "%" }} />
+                    </div>
+                    <div className="gpa-class-meta">
+                      <span>Graded so far: <b>{item.pointsEarned} / {item.currentPossible}</b></span>
+                      <span>Current Score: <b>{item.currentPercentage.toFixed(1)}%</b></span>
+                      <span>Term Total: <b>{item.totalPossible} pts</b></span>
+                    </div>
+
+                    {remainingPoints > 0 && pctNeededOnRemaining !== null && (
+                      <div className="gpa-projection-hint">
+                        <Calculator size={12} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4, color: "var(--teal)" }} />
+                        <span>
+                          Target <b>{targetLetter} ({targetPct}%)</b>: Need{" "}
+                          <b>
+                            {pctNeededOnRemaining <= 0
+                              ? "Already secured!"
+                              : pctNeededOnRemaining > 100
+                              ? "Mathematically impossible (>100%)"
+                              : `${pctNeededOnRemaining.toFixed(1)}% on remaining ${remainingPoints} pts`}
+                          </b>
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="gpa-class-meta">
-                    <span>Graded so far: <b>{item.pointsEarned} / {item.currentPossible}</b></span>
-                    <span>Current Score: <b>{item.currentPercentage.toFixed(1)}%</b></span>
-                    <span>Term Total: <b>{item.totalPossible} pts</b></span>
+                  <div className="task-row-actions">
+                    <button className="text-button" type="button" onClick={() => startEdit(item)}>
+                      Edit
+                    </button>
+                    <button className="text-button task-delete" type="button" onClick={() => handleDelete(item.id)}>
+                      Delete
+                    </button>
                   </div>
-                </div>
-                <div className="task-row-actions">
-                  <button className="text-button" type="button" onClick={() => startEdit(item)}>
-                    Edit
-                  </button>
-                  <button className="text-button task-delete" type="button" onClick={() => handleDelete(item.id)}>
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <p className="empty-state">No classes added yet. Add a class above to calculate your GPA.</p>
@@ -399,3 +488,4 @@ export default function GpaPage() {
     </AppShell>
   );
 }
+

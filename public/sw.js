@@ -1,9 +1,10 @@
-const CACHE_NAME = "tasktrackerhq-v2";
+const CACHE_NAME = "tasktrackerhq-v3";
 const STATIC_ASSETS = [
   "/",
   "/tasks",
   "/focus",
   "/calendar",
+  "/gpa",
   "/profile",
   "/settings",
   "/manifest.json",

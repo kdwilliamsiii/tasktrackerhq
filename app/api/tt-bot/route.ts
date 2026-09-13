@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions, isAdmin } from "../../../lib/auth";
-import { addTask, listTasks } from "../../../lib/db";
+import { addTask, listTasks, listCalendarEvents, listGpaClasses, addCalendarEvent } from "../../../lib/db";
 import { db } from "../../../lib/db";
 
 function getCorsHeaders(request: Request) {
@@ -78,8 +78,11 @@ export async function POST(request: Request) {
 
   const normalized = message.toLowerCase();
   const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
   const admin = isAdmin(session);
   const tasks = await listTasks();
+  const calendarEvents = await listCalendarEvents(userId);
+  const gpaClasses = await listGpaClasses(userId);
   const today = todayKey();
 
   if (normalized.includes("add a task") || normalized.startsWith("add task")) {
@@ -87,6 +90,22 @@ export async function POST(request: Request) {
     if (!title) return jsonResponse(request, { reply: "Sure — what should I add to your task list?", action: "add-task" });
     const task = await addTask({ title, completed: false, priority: "Medium", category: "TT Bot", dueDate: "" });
     return jsonResponse(request, { reply: `Done — I added “${task.title}” to your tasks.`, action: "task-created", task });
+  }
+
+  if (normalized.startsWith("add event") || normalized.startsWith("add calendar event") || normalized.startsWith("schedule event")) {
+    const details = message.replace(/^(add\s+event|add\s+calendar\s+event|schedule\s+event)\s*:?\s*/i, "").trim();
+    if (!details) return jsonResponse(request, { reply: "Sure — what event would you like to schedule? (e.g. 'Team Sync')", action: "open-calendar" });
+
+    const event = await addCalendarEvent({
+      id: crypto.randomUUID(),
+      userId,
+      title: details,
+      date: today,
+      time: "",
+      provider: "Local",
+      reminderMinutes: 30
+    });
+    return jsonResponse(request, { reply: `Done — I scheduled “${event.title}” on your calendar for today (${today}).`, action: "event-created", event });
   }
 
   if (normalized.includes("new suggestions") || normalized.includes("highest priority")) {
@@ -97,11 +116,15 @@ export async function POST(request: Request) {
     return jsonResponse(request, { reply: `I found ${suggestions.length} new suggestion${suggestions.length === 1 ? "" : "s"}. Highest priority: ${top.featureName || "Untitled"} (${top.priority || "unknown"}).`, action: "open-admin", href: "/admin/feedback" });
   }
 
-  if (normalized.includes("start focus") || normalized.includes("focus mode")) {
-    return jsonResponse(request, { reply: "Let’s focus. A 25-minute session is ready when you are.", action: "open-focus", href: "/focus" });
+  if (normalized.includes("start focus") || normalized.includes("focus mode") || normalized.includes("pomodoro")) {
+    return jsonResponse(request, { reply: "Let’s focus. A Pomodoro session with ambient audio is ready for you.", action: "open-focus", href: "/focus" });
   }
 
   if (normalized.includes("gpa") || normalized.includes("grade") || normalized.includes("class")) {
+    if (gpaClasses.length > 0) {
+      const avg = (gpaClasses.reduce((acc, c) => acc + (c.pointsEarned / (c.currentPossible || 1)) * 100, 0) / gpaClasses.length).toFixed(1);
+      return jsonResponse(request, { reply: `You have ${gpaClasses.length} registered course${gpaClasses.length === 1 ? "" : "s"} with an average grade of ${avg}%. Open GPA Tracker to view your grade projections.`, action: "open-gpa", href: "/gpa" });
+    }
     return jsonResponse(request, { reply: "I can help you check your GPA or class scores. Open the GPA Tracker page to see your overall course average and letter grades.", action: "open-gpa", href: "/gpa" });
   }
 
@@ -116,7 +139,9 @@ export async function POST(request: Request) {
     signedIn: Boolean(session),
     admin,
     taskSummary: { open: open.length, overdue, dueToday, total: tasks.length },
-    tasks: tasks.slice(0, 40).map(({ id, title, completed, priority, category, dueDate }) => ({ id, title, completed, priority, category, dueDate })),
+    tasks: tasks.slice(0, 30).map(({ id, title, completed, priority, category, dueDate }) => ({ id, title, completed, priority, category, dueDate })),
+    calendarEvents: calendarEvents.slice(0, 15).map(({ id, title, date, time, provider }) => ({ id, title, date, time, provider })),
+    courses: gpaClasses.map(c => ({ name: c.name, code: c.code, credits: c.credits }))
   });
 
   try {

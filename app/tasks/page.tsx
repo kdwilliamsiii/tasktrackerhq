@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
+import { Search, Download, CheckSquare, Trash2, Filter } from "lucide-react";
 
 type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
@@ -21,6 +22,8 @@ export default function TasksPage() {
   const [draft, setDraft] = useState<TaskDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filter, setFilter] = useState("All");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -50,6 +53,14 @@ export default function TasksPage() {
     const taskLoad = window.setTimeout(() => { void load(); }, 0);
     return () => window.clearTimeout(taskLoad);
   }, [load]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach(t => {
+      if (t.category && t.category.trim()) set.add(t.category.trim());
+    });
+    return Array.from(set);
+  }, [tasks]);
 
   function updateDraft(field: keyof TaskDraft, value: string) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -82,7 +93,8 @@ export default function TasksPage() {
       });
       if (!response.ok) throw new Error("Unable to save task");
       resetDraft();
-      notify(editingId ? "Task updated." : "Task created.", "success"); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      notify(editingId ? "Task updated." : "Task created.", "success");
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
       await load();
     } catch {
       setError("The task could not be saved. Please try again.");
@@ -97,18 +109,87 @@ export default function TasksPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: task.id, ...changes }),
     });
-    if (response.ok) { notify(changes.completed ? "Task marked complete." : "Task reopened.", "success"); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed")); await load(); }
-    else setError("The task could not be updated.");
+    if (response.ok) {
+      notify(changes.completed ? "Task marked complete." : "Task reopened.", "success");
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      await load();
+    } else setError("The task could not be updated.");
   }
 
   async function remove(id: string) {
     const response = await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (response.ok) { setTasks((old) => old.filter((task) => task.id !== id)); notify("Task deleted.", "info"); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed")); }
-    else setError("The task could not be deleted.");
+    if (response.ok) {
+      setTasks((old) => old.filter((task) => task.id !== id));
+      notify("Task deleted.", "info");
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+    } else setError("The task could not be deleted.");
+  }
+
+  async function completeAllOpen() {
+    const openTasks = tasks.filter(t => !t.completed);
+    if (!openTasks.length) return;
+    try {
+      await Promise.all(openTasks.map(t => fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: t.id, completed: true })
+      })));
+      notify(`Marked ${openTasks.length} task${openTasks.length === 1 ? "" : "s"} complete.`, "success");
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      await load();
+    } catch {
+      notify("Could not complete all tasks.", "error");
+    }
+  }
+
+  async function clearCompleted() {
+    const completedTasks = tasks.filter(t => t.completed);
+    if (!completedTasks.length) return;
+    try {
+      await Promise.all(completedTasks.map(t => fetch(`/api/tasks?id=${encodeURIComponent(t.id)}`, { method: "DELETE" })));
+      notify(`Cleared ${completedTasks.length} completed task${completedTasks.length === 1 ? "" : "s"}.`, "info");
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
+      await load();
+    } catch {
+      notify("Could not clear completed tasks.", "error");
+    }
+  }
+
+  function exportTasksCsv() {
+    if (!tasks.length) return;
+    const headers = ["Title", "Status", "Priority", "Category", "Due Date"];
+    const rows = tasks.map(t => [
+      `"${t.title.replace(/"/g, '""')}"`,
+      t.completed ? "Completed" : "Open",
+      t.priority,
+      `"${(t.category || "General").replace(/"/g, '""')}"`,
+      t.dueDate || ""
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasktracker-tasks-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    notify("Tasks exported to CSV.", "success");
   }
 
   const shown = tasks
-    .filter((task) => filter === "All" || (filter === "Open" ? !task.completed : task.completed))
+    .filter((task) => {
+      if (filter === "Open" && task.completed) return false;
+      if (filter === "Completed" && !task.completed) return false;
+      if (categoryFilter !== "All" && (task.category || "General") !== categoryFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesTitle = task.title.toLowerCase().includes(q);
+        const matchesCategory = (task.category || "").toLowerCase().includes(q);
+        if (!matchesTitle && !matchesCategory) return false;
+      }
+      return true;
+    })
     .slice()
     .sort((a, b) => {
       if (sort === "due") return (a.dueDate || "9999-12-31").localeCompare(b.dueDate || "9999-12-31");
@@ -122,25 +203,223 @@ export default function TasksPage() {
   return (
     <AppShell active="Tasks" eyebrow="Workspace" title="Task Manager" description="Plan, prioritize, and complete your work.">
       <section className="panel task-manager-form">
-        <div className="panel-header"><div><h2>{editingId ? "Edit task" : "Add a task"}</h2><p>{editingId ? "Update the details and save your changes." : "Capture the next thing you need to accomplish."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div>
+        <div className="panel-header">
+          <div>
+            <h2>{editingId ? "Edit task" : "Add a task"}</h2>
+            <p>{editingId ? "Update the details and save your changes." : "Capture the next thing you need to accomplish."}</p>
+          </div>
+          {editingId && (
+            <button className="text-button" type="button" onClick={resetDraft}>
+              Cancel edit
+            </button>
+          )}
+        </div>
         <form onSubmit={saveTask} className="task-form-grid">
-          <label className="task-field task-field-wide">Task title<input value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} placeholder="What needs to get done?" /></label>
-          <label className="task-field">Priority<select value={draft.priority} onChange={(event) => updateDraft("priority", event.target.value)}><option>Low</option><option>Medium</option><option>High</option></select></label>
-          <label className="task-field">Category<input value={draft.category} onChange={(event) => updateDraft("category", event.target.value)} placeholder="e.g. Work" /></label>
-          <label className="task-field">Due date<input type="date" value={draft.dueDate} onChange={(event) => updateDraft("dueDate", event.target.value)} /></label>
-          <button className="primary-button task-save" type="submit" disabled={saving}>{saving ? "Saving..." : editingId ? "Save changes" : "Add task"}</button>
+          <label className="task-field task-field-wide">
+            Task title
+            <input
+              value={draft.title}
+              onChange={(event) => updateDraft("title", event.target.value)}
+              placeholder="What needs to get done?"
+            />
+          </label>
+          <label className="task-field">
+            Priority
+            <select value={draft.priority} onChange={(event) => updateDraft("priority", event.target.value as Priority)}>
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </label>
+          <label className="task-field">
+            Category
+            <input
+              value={draft.category}
+              onChange={(event) => updateDraft("category", event.target.value)}
+              placeholder="e.g. Work, Study"
+            />
+          </label>
+          <label className="task-field">
+            Due date
+            <input
+              type="date"
+              value={draft.dueDate}
+              onChange={(event) => updateDraft("dueDate", event.target.value)}
+            />
+          </label>
+          <button className="primary-button task-save" type="submit" disabled={saving}>
+            {saving ? "Saving..." : editingId ? "Save changes" : "Add task"}
+          </button>
         </form>
         {error && <p className="form-error" role="alert">{error}</p>}
       </section>
-      <TTBotHint command="add a task: Review project notes">Tell TT Bot what you need to do and it can add a medium-priority task for you.</TTBotHint>
+
+      <TTBotHint command="add a task: Review project notes">
+        Tell TT Bot what you need to do and it can add a medium-priority task for you.
+      </TTBotHint>
+
       <section className="panel task-list-panel">
-        <div className="panel-header task-list-heading"><div><h2>Your tasks</h2><p>{tasks.filter((task) => !task.completed).length} open tasks</p></div><div className="filter-tabs"><select aria-label="Sort tasks" value={sort} onChange={(event) => setSort(event.target.value)}><option value="updated">Open first</option><option value="due">Due date</option><option value="priority">Priority</option></select>{["All", "Open", "Completed"].map((name) => <button className={filter === name ? "selected" : ""} key={name} onClick={() => setFilter(name)}>{name}<b>{name === "All" ? tasks.length : name === "Open" ? tasks.filter((task) => !task.completed).length : tasks.filter((task) => task.completed).length}</b></button>)}</div></div>
-        {loading ? <p className="empty-state">Loading tasks...</p> : shown.length ? <div className="task-list">{shown.map((task) => <article className={`task-row-card ${task.completed ? "is-complete" : ""}`} key={task.id} draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", task.title); e.dataTransfer.effectAllowed = "copy"; }}>
-          <button className="task-check" onClick={() => void update(task, { completed: !task.completed })} aria-label={`Mark ${task.title} ${task.completed ? "open" : "complete"}`}>{task.completed ? "✓" : "○"}</button>
-          <div className="task-row-copy"><strong>{task.title}</strong><div className="task-meta"><StatusPill status={task.priority} /><span>{task.category || "General"}</span><span className={task.dueDate && task.dueDate < new Date().toISOString().slice(0, 10) && !task.completed ? "task-overdue" : ""}>{formatDueDate(task.dueDate)}</span></div></div>
-          <div className="task-row-actions"><button className="text-button" onClick={() => startEdit(task)}>Edit</button><button className="text-button task-delete" onClick={() => void remove(task.id)}>Delete</button></div>
-        </article>)}</div> : <p className="empty-state">No tasks here yet. Add one above to get started.</p>}
+        <div className="panel-header task-list-heading">
+          <div>
+            <h2>Your tasks</h2>
+            <p>{tasks.filter((task) => !task.completed).length} open tasks</p>
+          </div>
+
+          <div className="task-header-actions">
+            <button
+              type="button"
+              className="task-action-btn"
+              onClick={exportTasksCsv}
+              title="Export tasks to CSV"
+            >
+              <Download size={13} /> Export
+            </button>
+            <button
+              type="button"
+              className="task-action-btn"
+              onClick={completeAllOpen}
+              title="Complete all open tasks"
+            >
+              <CheckSquare size={13} /> Complete All
+            </button>
+            <button
+              type="button"
+              className="task-action-btn"
+              onClick={clearCompleted}
+              title="Clear completed tasks"
+            >
+              <Trash2 size={13} /> Clear Done
+            </button>
+          </div>
+        </div>
+
+        {/* Task Search & Quick Category Filters */}
+        <div className="task-search-filter-bar">
+          <div className="task-search-box">
+            <Search size={14} className="task-search-icon" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="task-search-input"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="task-search-clear"
+                onClick={() => setSearchQuery("")}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="filter-tabs">
+            <select aria-label="Sort tasks" value={sort} onChange={(event) => setSort(event.target.value)}>
+              <option value="updated">Open first</option>
+              <option value="due">Due date</option>
+              <option value="priority">Priority</option>
+            </select>
+            {["All", "Open", "Completed"].map((name) => (
+              <button
+                className={filter === name ? "selected" : ""}
+                key={name}
+                onClick={() => setFilter(name)}
+              >
+                {name}
+                <b>
+                  {name === "All"
+                    ? tasks.length
+                    : name === "Open"
+                    ? tasks.filter((task) => !task.completed).length
+                    : tasks.filter((task) => task.completed).length}
+                </b>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        {categories.length > 0 && (
+          <div className="task-category-pills">
+            <button
+              type="button"
+              className={`category-pill ${categoryFilter === "All" ? "active" : ""}`}
+              onClick={() => setCategoryFilter("All")}
+            >
+              All Categories
+            </button>
+            {categories.map((cat) => (
+              <button
+                type="button"
+                key={cat}
+                className={`category-pill ${categoryFilter === cat ? "active" : ""}`}
+                onClick={() => setCategoryFilter(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {loading ? (
+          <p className="empty-state">Loading tasks...</p>
+        ) : shown.length ? (
+          <div className="task-list">
+            {shown.map((task) => (
+              <article
+                className={`task-row-card ${task.completed ? "is-complete" : ""}`}
+                key={task.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", task.title);
+                  e.dataTransfer.effectAllowed = "copy";
+                }}
+              >
+                <button
+                  className="task-check"
+                  onClick={() => void update(task, { completed: !task.completed })}
+                  aria-label={`Mark ${task.title} ${task.completed ? "open" : "complete"}`}
+                >
+                  {task.completed ? "✓" : "○"}
+                </button>
+                <div className="task-row-copy">
+                  <strong>{task.title}</strong>
+                  <div className="task-meta">
+                    <StatusPill status={task.priority} />
+                    <span>{task.category || "General"}</span>
+                    <span
+                      className={
+                        task.dueDate && task.dueDate < new Date().toISOString().slice(0, 10) && !task.completed
+                          ? "task-overdue"
+                          : ""
+                      }
+                    >
+                      {formatDueDate(task.dueDate)}
+                    </span>
+                  </div>
+                </div>
+                <div className="task-row-actions">
+                  <button className="text-button" onClick={() => startEdit(task)}>
+                    Edit
+                  </button>
+                  <button className="text-button task-delete" onClick={() => void remove(task.id)}>
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">
+            {searchQuery || categoryFilter !== "All"
+              ? "No tasks match your filters."
+              : "No tasks here yet. Add one above to get started."}
+          </p>
+        )}
       </section>
     </AppShell>
   );
 }
+
