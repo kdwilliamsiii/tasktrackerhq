@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, CheckCircle2, Sparkles, Coffee } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, CheckCircle2, Sparkles, Coffee, Lock } from "lucide-react";
+import { useAuthGate } from "../../components/AuthModalProvider";
 
 type FocusStats = { sessions: number; minutes: number; lastSession?: string; sessionDates?: string[] };
 type TaskItem = { id: string; title: string; completed: boolean; priority: string; category?: string };
@@ -59,6 +60,7 @@ export default function FocusPage() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [ambientSound, setAmbientSound] = useState<"off" | "rain" | "noise">("off");
   const { notify } = useNotifications();
+  const { requireAuth } = useAuthGate();
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseNodeRef = useRef<AudioNode | null>(null);
@@ -289,7 +291,13 @@ export default function FocusPage() {
           <div className="focus-controls">
             <button
               className="focus-primary"
-              onClick={() => setRunning((val) => !val)}
+              onClick={() => {
+                if (!running) {
+                  requireAuth(() => setRunning(true), "Sign in with Google or Microsoft to start focus sessions and track streaks.");
+                } else {
+                  setRunning(false);
+                }
+              }}
               disabled={!hydrated}
             >
               {running ? (

@@ -5,6 +5,7 @@ import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
 import { Download, Calculator, Sparkles } from "lucide-react";
+import { useAuthGate } from "../../components/AuthModalProvider";
 
 type CourseClass = {
   id: string;
@@ -52,7 +53,14 @@ function getLetterGrade(percentage: number, isHonors = false): { letter: string;
   return { letter: "F", gpaPoints: 0.0 };
 }
 
+const DEMO_CLASSES: CourseClass[] = [
+  { id: "demo-gpa-1", name: "Data Structures & Algorithms (Preview)", code: "CS 201", credits: 4, pointsEarned: 375, currentPossible: 400, totalPossible: 500, isHonors: false },
+  { id: "demo-gpa-2", name: "Honors Linear Algebra (Preview)", code: "MATH 240", credits: 4, pointsEarned: 280, currentPossible: 300, totalPossible: 400, isHonors: true },
+  { id: "demo-gpa-3", name: "Technical Writing (Preview)", code: "ENG 105", credits: 3, pointsEarned: 190, currentPossible: 200, totalPossible: 300, isHonors: false },
+];
+
 export default function GpaPage() {
+  const { isAuthenticated, requireAuth } = useAuthGate();
   const formRef = useRef<HTMLElement>(null);
   const [classes, setClasses] = useState<CourseClass[]>([]);
   const [draft, setDraft] = useState<ClassDraft>(emptyDraft);
@@ -77,16 +85,21 @@ export default function GpaPage() {
       }
 
       const merged = Array.from(map.values());
-      setClasses(merged);
-      if (typeof window !== "undefined") {
-        localStorage.setItem("tasktracker-gpa-classes", JSON.stringify(merged));
+      if (merged.length === 0 && !isAuthenticated) {
+        setClasses(DEMO_CLASSES);
+      } else {
+        setClasses(merged);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("tasktracker-gpa-classes", JSON.stringify(merged));
+        }
       }
     } catch {
       try {
         const stored = localStorage.getItem("tasktracker-gpa-classes");
-        if (stored) setClasses(JSON.parse(stored));
+        const parsed = stored ? JSON.parse(stored) : [];
+        setClasses(parsed.length > 0 ? parsed : (!isAuthenticated ? DEMO_CLASSES : []));
       } catch {
-        setClasses([]);
+        setClasses(!isAuthenticated ? DEMO_CLASSES : []);
       }
     }
   };
@@ -120,6 +133,9 @@ export default function GpaPage() {
   }
 
   function startEdit(item: CourseClass) {
+    if (!requireAuth(() => startEdit(item), "Sign in to edit course grades.")) {
+      return;
+    }
     setEditingId(item.id);
     setDraft({
       name: item.name,
@@ -142,6 +158,9 @@ export default function GpaPage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAuth(() => {}, "Sign in or attach a Google or Microsoft account to save courses and calculate your GPA.")) {
+      return;
+    }
     if (!draft.name.trim()) {
       setError("Please enter a class name.");
       return;
@@ -191,6 +210,9 @@ export default function GpaPage() {
   }
 
   async function handleDelete(id: string) {
+    if (!requireAuth(() => handleDelete(id), "Sign in to delete courses.")) {
+      return;
+    }
     const target = classes.find((c) => c.id === id);
     if (!target) return;
     if (!window.confirm('Delete "' + target.name + '"?')) return;
@@ -210,6 +232,9 @@ export default function GpaPage() {
   }
 
   function exportGpaCsv() {
+    if (!requireAuth(exportGpaCsv, "Sign in to export your GPA transcripts and reports.")) {
+      return;
+    }
     if (!classes.length) return;
     const headers = ["Course Name", "Code", "Credits", "Points Earned", "Current Possible", "Term Total", "Current %", "Letter Grade", "Honors"];
     const rows = evaluatedClasses.map(c => [

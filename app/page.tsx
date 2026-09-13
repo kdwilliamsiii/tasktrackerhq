@@ -15,12 +15,23 @@ type Task = { id: string; title: string; completed: boolean; priority: string; c
 type CalendarEvent = { id: string; title: string; date: string; provider?: string; time?: string; location?: string };
 type FocusStats = { sessions: number; minutes: number; lastSession?: string; sessionDates?: string[] };
 
+const DEMO_DASHBOARD_TASKS: Task[] = [
+  { id: "demo-dash-1", title: "Review product roadmap & sprint goals (Preview)", completed: false, priority: "High" },
+  { id: "demo-dash-2", title: "Prepare quarterly system architecture demo (Preview)", completed: false, priority: "Medium" },
+  { id: "demo-dash-3", title: "Optimize background sync performance (Preview)", completed: true, priority: "Low", completedAt: new Date().toISOString() },
+];
+
+const DEMO_DASHBOARD_EVENTS: CalendarEvent[] = [
+  { id: "demo-ev-1", title: "Engineering Sync (Preview)", date: new Date().toISOString().slice(0, 10), time: new Date(Date.now() + 3600000).toISOString(), provider: "Google" },
+  { id: "demo-ev-2", title: "Product Strategy & Planning (Preview)", date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: new Date(Date.now() + 86400000 + 7200000).toISOString(), provider: "Microsoft" },
+];
+
 export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [focusStreak, setFocusStreak] = useState(0);
   const [dateInfo, setDateInfo] = useState<{ dateLabel: string; greeting: string } | null>(null);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const loadDashboardData = async () => {
     // 1. Fetch Tasks
@@ -28,10 +39,13 @@ export default function DashboardPage() {
       const res = await fetch("/api/tasks", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setTasks(data.tasks || []);
+        const loadedTasks = data.tasks || [];
+        setTasks(loadedTasks.length > 0 ? loadedTasks : (!session ? DEMO_DASHBOARD_TASKS : []));
+      } else {
+        setTasks(!session ? DEMO_DASHBOARD_TASKS : []);
       }
     } catch {
-      setTasks([]);
+      setTasks(!session ? DEMO_DASHBOARD_TASKS : []);
     }
 
     // 2. Fetch Events (Database + localStorage merge)
@@ -59,9 +73,9 @@ export default function DashboardPage() {
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(0, 4);
 
-      setEvents(filteredEvents);
+      setEvents(filteredEvents.length > 0 ? filteredEvents : (!session ? DEMO_DASHBOARD_EVENTS : []));
     } catch {
-      setEvents([]);
+      setEvents(!session ? DEMO_DASHBOARD_EVENTS : []);
     }
   };
 

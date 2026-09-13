@@ -19,9 +19,12 @@ import {
   ChevronDown,
   Bell,
   Cpu,
+  Lock,
+  LogIn,
 } from "lucide-react";
 import SearchBar from "../../components/SearchBar";
 import { useNotifications } from "../../components/NotificationProvider";
+import { useAuthGate } from "../../components/AuthModalProvider";
 
 const navigation = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -40,10 +43,13 @@ export function AppShell({ children, active, eyebrow, title, description, action
   const touchStartY = useRef<number | null>(null);
 
   const [dateLabel, setDateLabel] = useState("");
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { notifications, unreadCount, markAsRead, markAllAsRead, notify } = useNotifications();
+  const { openAuthModal } = useAuthGate();
   const userName = session?.user?.name || "Guest user";
-  const userInitials = userName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "TT";
+  const userInitials = session?.user?.name
+    ? session.user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "TT"
+    : "GP";
 
   useEffect(() => {
     const updateDate = () => setDateLabel(new Intl.DateTimeFormat(undefined, { weekday: "long", month: "short", day: "numeric", year: "numeric" }).format(new Date()));
@@ -128,6 +134,16 @@ export function AppShell({ children, active, eyebrow, title, description, action
         </Link>
 
         <div className="mobile-header-actions">
+          {!session && status !== "loading" && (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => openAuthModal("Sign in to save tasks and sync calendars.")}
+              style={{ padding: "4px 8px", fontSize: 10, display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
+              <LogIn size={11} /> Sign In
+            </button>
+          )}
           <button
             type="button"
             className={"mobile-refresh-btn" + (refreshing ? " spinning" : "")}
@@ -153,14 +169,33 @@ export function AppShell({ children, active, eyebrow, title, description, action
             <X size={18} />
           </button>
         </div>
-        <Link className="workspace-switcher" href={session ? "/profile" : "/settings"} onClick={() => setMobileNavOpen(false)}>
-          <span className="workspace-avatar">{userInitials}</span>
-          <span className="workspace-copy">
-            <strong>{session ? userName : "Your workspace"}</strong>
-            <small>{session ? "Personal workspace" : "Sign in to personalize"}</small>
-          </span>
-          <ChevronDown size={14} className="chevron" />
-        </Link>
+        {session ? (
+          <Link className="workspace-switcher" href="/profile" onClick={() => setMobileNavOpen(false)}>
+            <span className="workspace-avatar">{userInitials}</span>
+            <span className="workspace-copy">
+              <strong>{userName}</strong>
+              <small>Personal workspace</small>
+            </span>
+            <ChevronDown size={14} className="chevron" />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="workspace-switcher"
+            onClick={() => {
+              setMobileNavOpen(false);
+              openAuthModal("Sign in to personalize your workspace.");
+            }}
+            style={{ width: "100%", textAlign: "left", background: "transparent", border: 0, cursor: "pointer" }}
+          >
+            <span className="workspace-avatar" style={{ background: "var(--orange)" }}>G</span>
+            <span className="workspace-copy">
+              <strong>Guest (Preview)</strong>
+              <small style={{ color: "var(--teal)" }}>Sign in to unlock</small>
+            </span>
+            <Lock size={12} style={{ color: "var(--muted)" }} />
+          </button>
+        )}
         <nav className="main-nav" aria-label="Main navigation">
           <span className="nav-label">Workspace</span>
           {navigation.map((item) => {
@@ -206,6 +241,16 @@ export function AppShell({ children, active, eyebrow, title, description, action
         <header className="topbar">
           <div className="breadcrumb"><span>Workspace</span><b>/</b><strong>{title}</strong></div>
           <div className="topbar-actions">
+            {!session && status !== "loading" && (
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => openAuthModal("Sign in to save tasks and sync calendars.")}
+                style={{ padding: "6px 14px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <LogIn size={13} /> Sign In
+              </button>
+            )}
             <SearchBar />
             <div className="notification-menu">
               <button className="icon-button" aria-label={unreadCount + " unread notifications"} aria-expanded={open} onClick={() => setOpen((current) => !current)}>
@@ -218,6 +263,24 @@ export function AppShell({ children, active, eyebrow, title, description, action
           </div>
         </header>
         <div className="page-content">
+          {!session && status !== "loading" && (
+            <div className="guest-preview-banner">
+              <div className="guest-preview-banner-content">
+                <span className="guest-preview-pill">Preview Mode</span>
+                <span className="guest-preview-text">
+                  You are previewing TaskTrackerHQ. <strong>Sign in with Google or Microsoft</strong> to create tasks, sync your calendar, run focus sessions, and use AI features.
+                </span>
+              </div>
+              <button
+                type="button"
+                className="primary-button guest-preview-action-btn"
+                onClick={() => openAuthModal("Sign in to unlock all workspace features.")}
+              >
+                <Lock size={12} /> Sign In to Unlock
+              </button>
+            </div>
+          )}
+
           <div className="page-heading">
             <div>
               <p className="eyebrow">{eyebrow}</p>

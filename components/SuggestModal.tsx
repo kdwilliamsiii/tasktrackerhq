@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import { useNotifications } from "./NotificationProvider";
+import { useAuthGate } from "./AuthModalProvider";
 
 export default function SuggestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { requireAuth } = useAuthGate();
   const [featureName, setFeatureName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Tasks");
@@ -14,6 +16,9 @@ export default function SuggestModal({ open, onClose }: { open: boolean; onClose
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!requireAuth(() => {}, "Sign in to submit feature suggestions.")) {
+      return;
+    }
     setError("");
     setSubmitting(true);
 

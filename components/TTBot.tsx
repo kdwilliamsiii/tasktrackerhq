@@ -3,10 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useFloatingPosition } from "./useFloatingPosition";
+import { useAuthGate } from "./AuthModalProvider";
 
 type Message = { id: string; from: "bot" | "user"; text: string; href?: string };
 
 export default function TTBot({ onOpenSuggestion }: { onOpenSuggestion: () => void }) {
+  const { requireAuth } = useAuthGate();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -16,6 +18,9 @@ export default function TTBot({ onOpenSuggestion }: { onOpenSuggestion: () => vo
   async function send(text = input) {
     const value = text.trim();
     if (!value || sending) return;
+    if (!requireAuth(() => send(text), "Sign in or connect with Google or Microsoft to chat with TT Bot.")) {
+      return;
+    }
     setInput("");
     setMessages((current) => [...current, { id: crypto.randomUUID(), from: "user", text: value }]);
     setSending(true);

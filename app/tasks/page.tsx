@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
-import { Search, Download, CheckSquare, Trash2, Filter, Sparkles } from "lucide-react";
+import { Search, Download, CheckSquare, Trash2, Filter, Sparkles, Lock } from "lucide-react";
 import { callAiAssistant } from "../../lib/ai";
+import { useAuthGate } from "../../components/AuthModalProvider";
 
 type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
@@ -31,6 +32,7 @@ export default function TasksPage() {
   const [sort, setSort] = useState("updated");
   const [polishing, setPolishing] = useState(false);
   const { notify } = useNotifications();
+  const { requireAuth, isAuthenticated } = useAuthGate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,10 +40,20 @@ export default function TasksPage() {
       const response = await fetch("/api/tasks", { cache: "no-store" });
       if (!response.ok) throw new Error("Unable to load tasks");
       const data = await response.json();
-      setTasks(data.tasks || []);
+      const loadedTasks: Task[] = data.tasks || [];
+      if (!loadedTasks.length && !isAuthenticated) {
+        // Provide demo preview tasks so visitors can see how tasks look
+        setTasks([
+          { id: "demo-1", title: "Review CS301 data structures lecture slides", priority: "High", completed: false, category: "Academics", dueDate: new Date().toISOString().slice(0, 10) },
+          { id: "demo-2", title: "Submit chemistry lab experiment findings", priority: "Medium", completed: false, category: "Homework", dueDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10) },
+          { id: "demo-3", title: "Sync team project milestone timeline", priority: "Low", completed: true, category: "Project" },
+        ]);
+      } else {
+        setTasks(loadedTasks);
+      }
       const today = new Date().toISOString().slice(0, 10);
-      const due = (data.tasks || []).filter((task: Task) => !task.completed && task.dueDate === today).length;
-      const overdue = (data.tasks || []).filter((task: Task) => !task.completed && task.dueDate && task.dueDate < today).length;
+      const due = (loadedTasks).filter((task: Task) => !task.completed && task.dueDate === today).length;
+      const overdue = (loadedTasks).filter((task: Task) => !task.completed && task.dueDate && task.dueDate < today).length;
       if (due && !sessionStorage.getItem(`tasktracker-due-${today}`)) { notify(`${due} task${due === 1 ? "" : "s"} due today.`, "warning"); sessionStorage.setItem(`tasktracker-due-${today}`, "1"); }
       if (overdue && !sessionStorage.getItem(`tasktracker-overdue-${today}`)) { notify(`${overdue} overdue task${overdue === 1 ? "" : "s"} need attention.`, "error"); sessionStorage.setItem(`tasktracker-overdue-${today}`, "1"); }
     } catch {
@@ -49,7 +61,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, [notify, isAuthenticated]);
 
   useEffect(() => {
     const taskLoad = window.setTimeout(() => { void load(); }, 0);
@@ -69,6 +81,7 @@ export default function TasksPage() {
   }
 
   function startEdit(task: Task) {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to edit tasks.")) return;
     setEditingId(task.id);
     setDraft({ title: task.title, priority: task.priority, category: task.category || "General", dueDate: task.dueDate || "" });
     setError("");
@@ -80,6 +93,7 @@ export default function TasksPage() {
   }
 
   async function polishTaskTitle() {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to polish task titles with Fast AI.")) return;
     if (!draft.title.trim()) {
       setError("Enter a task title first to polish with AI.");
       return;
@@ -104,6 +118,7 @@ export default function TasksPage() {
 
   async function saveTask(event: React.FormEvent) {
     event.preventDefault();
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to create and save tasks.")) return;
     if (!draft.title.trim()) {
       setError("Enter a task title before saving.");
       return;
@@ -129,6 +144,7 @@ export default function TasksPage() {
   }
 
   async function update(task: Task, changes: Partial<Task>) {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to update tasks.")) return;
     const response = await fetch("/api/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -142,6 +158,7 @@ export default function TasksPage() {
   }
 
   async function remove(id: string) {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to delete tasks.")) return;
     const response = await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     if (response.ok) {
       setTasks((old) => old.filter((task) => task.id !== id));
@@ -151,6 +168,7 @@ export default function TasksPage() {
   }
 
   async function completeAllOpen() {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to manage tasks.")) return;
     const openTasks = tasks.filter(t => !t.completed);
     if (!openTasks.length) return;
     try {
@@ -168,6 +186,7 @@ export default function TasksPage() {
   }
 
   async function clearCompleted() {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to clear tasks.")) return;
     const completedTasks = tasks.filter(t => t.completed);
     if (!completedTasks.length) return;
     try {
@@ -181,6 +200,7 @@ export default function TasksPage() {
   }
 
   function exportTasksCsv() {
+    if (!requireAuth(() => {}, "Sign in with Google or Microsoft to export task lists.")) return;
     if (!tasks.length) return;
     const headers = ["Title", "Status", "Priority", "Category", "Due Date"];
     const rows = tasks.map(t => [

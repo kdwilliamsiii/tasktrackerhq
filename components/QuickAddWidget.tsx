@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useAuthGate } from "./AuthModalProvider";
 
 type QuickAddType = "task" | "note" | "reminder";
 
@@ -9,43 +10,49 @@ export default function QuickAddWidget() {
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const { requireAuth } = useAuthGate();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!value.trim()) return;
-    setSaving(true);
-    setMessage("");
 
-    try {
-      const title = value.trim();
-      const category = type === "task" ? "Quick add" : type === "note" ? "Note" : "Reminder";
+    const authed = requireAuth(async () => {
+      setSaving(true);
+      setMessage("");
 
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, priority: "Medium", category }),
-      });
+      try {
+        const title = value.trim();
+        const category = type === "task" ? "Quick add" : type === "note" ? "Note" : "Reminder";
 
-      if (!response.ok) throw new Error("Unable to add " + type);
+        const response = await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, priority: "Medium", category }),
+        });
 
-      if (typeof window !== "undefined") {
-        const key = type === "note" ? "tasktracker-notes" : "tasktracker-reminders";
-        if (type !== "task") {
-          const saved = JSON.parse(localStorage.getItem(key) || "[]") as Array<{ id: string; text: string; createdAt: string }>;
-          saved.unshift({ id: crypto.randomUUID(), text: title, createdAt: new Date().toISOString() });
-          localStorage.setItem(key, JSON.stringify(saved.slice(0, 50)));
+        if (!response.ok) throw new Error("Unable to add " + type);
+
+        if (typeof window !== "undefined") {
+          const key = type === "note" ? "tasktracker-notes" : "tasktracker-reminders";
+          if (type !== "task") {
+            const saved = JSON.parse(localStorage.getItem(key) || "[]") as Array<{ id: string; text: string; createdAt: string }>;
+            saved.unshift({ id: crypto.randomUUID(), text: title, createdAt: new Date().toISOString() });
+            localStorage.setItem(key, JSON.stringify(saved.slice(0, 50)));
+          }
+          window.dispatchEvent(new Event("tasktracker-quick-add"));
+          window.dispatchEvent(new Event("tasktracker-data-changed"));
         }
-        window.dispatchEvent(new Event("tasktracker-quick-add"));
-        window.dispatchEvent(new Event("tasktracker-data-changed"));
-      }
 
-      setValue("");
-      setMessage(type[0].toUpperCase() + type.slice(1) + " saved & synced!");
-    } catch {
-      setMessage("Unable to save. Please try again.");
-    } finally {
-      setSaving(false);
-    }
+        setValue("");
+        setMessage(type[0].toUpperCase() + type.slice(1) + " saved & synced!");
+      } catch {
+        setMessage("Unable to save. Please try again.");
+      } finally {
+        setSaving(false);
+      }
+    }, `Sign in with Google or Microsoft to capture and save ${type}s.`);
+
+    if (!authed) return;
   }
 
   return (

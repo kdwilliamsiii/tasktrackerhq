@@ -5,7 +5,8 @@ import CalendarEventList, { type CalendarListEvent } from "../../components/Cale
 import MonthCalendar from "../../components/MonthCalendar";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
-import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2 } from "lucide-react";
+import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2, Lock } from "lucide-react";
+import { useAuthGate } from "../../components/AuthModalProvider";
 
 type EventItem = CalendarListEvent;
 type EventDraft = { title: string; date: string; time: string; reminderMinutes: string };
@@ -19,7 +20,14 @@ function localDateTimeValue(value?: string) {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+const DEMO_CALENDAR_EVENTS: EventItem[] = [
+  { id: "demo-cal-1", title: "Team Architecture Review (Preview)", date: new Date().toISOString().slice(0, 10), time: new Date(Date.now() + 3600000).toISOString(), provider: "Google", reminderMinutes: 15 },
+  { id: "demo-cal-2", title: "Project Sprint Planning (Preview)", date: new Date(Date.now() + 86400000).toISOString().slice(0, 10), time: new Date(Date.now() + 86400000 + 7200000).toISOString(), provider: "Microsoft", reminderMinutes: 30 },
+  { id: "demo-cal-3", title: "Design Feedback Session (Preview)", date: new Date(Date.now() + 172800000).toISOString().slice(0, 10), provider: "Local", reminderMinutes: 30 },
+];
+
 export default function CalendarPage() {
+  const { isAuthenticated, requireAuth } = useAuthGate();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [draft, setDraft] = useState<EventDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,13 +60,18 @@ export default function CalendarPage() {
       }
 
       const merged = Array.from(map.values());
-      setEvents(merged);
-      localStorage.setItem("tasktracker-events", JSON.stringify(merged));
+      if (merged.length === 0 && !isAuthenticated) {
+        setEvents(DEMO_CALENDAR_EVENTS);
+      } else {
+        setEvents(merged);
+        localStorage.setItem("tasktracker-events", JSON.stringify(merged));
+      }
     } catch {
       try {
-        setEvents(JSON.parse(localStorage.getItem("tasktracker-events") || "[]"));
+        const stored = JSON.parse(localStorage.getItem("tasktracker-events") || "[]");
+        setEvents(stored.length > 0 ? stored : (!isAuthenticated ? DEMO_CALENDAR_EVENTS : []));
       } catch {
-        setEvents([]);
+        setEvents(!isAuthenticated ? DEMO_CALENDAR_EVENTS : []);
       }
     }
   };
@@ -132,6 +145,9 @@ export default function CalendarPage() {
 
   async function saveEvent(e: React.FormEvent) {
     e.preventDefault();
+    if (!requireAuth(() => {}, "Sign in or attach a Google or Microsoft account to create and manage calendar events.")) {
+      return;
+    }
     if (!draft.title.trim()) return;
     const target = events.find((item) => item.id === editingId);
     let time: string | undefined = undefined;
@@ -200,6 +216,9 @@ export default function CalendarPage() {
   }
 
   function editEvent(event: EventItem) {
+    if (!requireAuth(() => editEvent(event), "Sign in to edit calendar events.")) {
+      return;
+    }
     if (event.provider && event.provider !== "Local" && event.provider !== "Google") {
       notify(event.provider + " events are read-only here. Edit them in " + event.provider + ".", "info");
       return;
@@ -215,6 +234,9 @@ export default function CalendarPage() {
   }
 
   async function deleteEvent(event: EventItem) {
+    if (!requireAuth(() => deleteEvent(event), "Sign in to delete calendar events.")) {
+      return;
+    }
     if (!window.confirm('Delete "' + event.title + '"?')) return;
 
     if (event.provider === "Google") {
@@ -268,6 +290,9 @@ export default function CalendarPage() {
   }
 
   function openEventFromCalendar(event: EventItem) {
+    if (!requireAuth(() => openEventFromCalendar(event), "Sign in to edit calendar events.")) {
+      return;
+    }
     setEditingId(event.id);
     setActiveSection("add");
     if (event.provider === "Local" || event.provider === "Google") {
@@ -282,6 +307,9 @@ export default function CalendarPage() {
 
   async function handleExternalDrop(e: React.DragEvent, dateKey: string) {
     e.preventDefault();
+    if (!requireAuth(() => {}, "Sign in or attach a Google or Microsoft account to create events via drag and drop.")) {
+      return;
+    }
     const textData = e.dataTransfer.getData("text/plain") || e.dataTransfer.getData("text/uri-list") || "";
     const htmlData = e.dataTransfer.getData("text/html");
 
@@ -331,6 +359,9 @@ export default function CalendarPage() {
   }
 
   async function moveEvent(eventId: string, dateKey: string) {
+    if (!requireAuth(() => moveEvent(eventId, dateKey), "Sign in to reschedule calendar events.")) {
+      return;
+    }
     const target = events.find((event) => event.id === eventId);
     if (!target) return;
     if (target.provider && target.provider !== "Local" && target.provider !== "Google") {
@@ -387,6 +418,9 @@ export default function CalendarPage() {
   }
 
   async function sync(provider: string) {
+    if (!requireAuth(() => sync(provider), "Sign in with Google or Microsoft to sync calendar events.")) {
+      return;
+    }
     setSyncing(provider);
     setMessage("");
     try {
