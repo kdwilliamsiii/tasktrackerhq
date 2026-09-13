@@ -12,6 +12,7 @@ const navigation = [
   { href: "/tasks", label: "Tasks", icon: "□" },
   { href: "/focus", label: "Focus", icon: "◷" },
   { href: "/calendar", label: "Calendar", icon: "▦" },
+  { href: "/gpa", label: "GPA Tracker", icon: "★" },
   { href: "/profile", label: "Profile", icon: "◎" },
 ];
 

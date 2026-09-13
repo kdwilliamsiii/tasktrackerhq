@@ -101,6 +101,10 @@ export async function POST(request: Request) {
     return jsonResponse(request, { reply: "Let’s focus. A 25-minute session is ready when you are.", action: "open-focus", href: "/focus" });
   }
 
+  if (normalized.includes("gpa") || normalized.includes("grade") || normalized.includes("class")) {
+    return jsonResponse(request, { reply: "I can help you check your GPA or class scores. Open the GPA Tracker page to see your overall course average and letter grades.", action: "open-gpa", href: "/gpa" });
+  }
+
   if (normalized.includes("suggestion") || normalized.includes("feedback")) {
     return jsonResponse(request, { reply: "Thanks for the feedback. Use the suggestion form and an admin can review it.", action: "open-suggestion" });
   }

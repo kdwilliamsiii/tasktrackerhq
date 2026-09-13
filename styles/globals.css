@@ -450,3 +450,177 @@ body {
     flex-shrink: 0;
   }
 }
+
+/* GPA Tracker Styles */
+.gpa-summary-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--teal) 40%, var(--line));
+  border-radius: var(--radius);
+  color: #fff;
+  background: linear-gradient(120deg, var(--navy), color-mix(in srgb, var(--navy) 75%, var(--teal)));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--navy) 22%, transparent);
+}
+.gpa-main-stat .gpa-kicker {
+  color: var(--teal);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.gpa-main-stat h2 {
+  margin: 6px 0;
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: #fff;
+}
+.gpa-main-stat p {
+  margin: 0;
+  color: color-mix(in srgb, #fff 75%, var(--teal));
+  font-size: 12px;
+}
+.gpa-stats-divider {
+  width: 1px;
+  height: 60px;
+  background: color-mix(in srgb, #fff 15%, transparent);
+}
+.gpa-sub-stats {
+  display: flex;
+  gap: 20px;
+}
+.gpa-sub-stats div {
+  padding: 12px 18px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.gpa-sub-stats strong {
+  display: block;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+.gpa-sub-stats span {
+  display: block;
+  margin-top: 4px;
+  color: color-mix(in srgb, #fff 70%, var(--teal));
+  font-size: 10px;
+}
+
+.gpa-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.gpa-class-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.gpa-class-card:hover {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--navy) 6%, transparent);
+}
+.gpa-class-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--navy);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--navy) 20%, transparent);
+}
+.gpa-class-badge strong {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+}
+.gpa-class-badge small {
+  margin-top: 3px;
+  color: var(--teal);
+  font-size: 9px;
+  font-weight: 700;
+}
+.gpa-class-body {
+  flex: 1;
+  min-width: 0;
+}
+.gpa-class-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.gpa-class-title-row strong {
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 700;
+}
+.gpa-course-code {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--teal) 12%, var(--surface));
+  color: var(--teal);
+  font-size: 10px;
+  font-weight: 700;
+}
+.gpa-progress-bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--background);
+  margin-bottom: 8px;
+}
+.gpa-progress-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal), color-mix(in srgb, var(--teal) 70%, var(--navy)));
+  transition: width 0.3s ease;
+}
+.gpa-class-meta {
+  display: flex;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.gpa-class-meta b {
+  color: var(--foreground);
+}
+
+@media (max-width: 760px) {
+  .gpa-summary-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+  .gpa-stats-divider {
+    display: none;
+  }
+  .gpa-sub-stats {
+    width: 100%;
+  }
+  .gpa-sub-stats div {
+    flex: 1;
+  }
+  .gpa-class-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .gpa-class-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
