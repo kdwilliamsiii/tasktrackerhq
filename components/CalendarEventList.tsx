@@ -1,3 +1,5 @@
+import { Clock, MapPin, Bell } from "lucide-react";
+
 export type CalendarListEvent = {
   id: string;
   date: string;
@@ -28,6 +30,18 @@ export default function CalendarEventList({
           ? new Date(event.time).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
           : "All Day";
 
+        const rawDate = (event.date || "").slice(0, 10);
+        let formattedDate = rawDate;
+        if (rawDate) {
+          const [y, m, d] = rawDate.split("-").map(Number);
+          if (y && m && d) {
+            const dt = new Date(y, m - 1, d);
+            if (!Number.isNaN(dt.getTime())) {
+              formattedDate = dt.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+            }
+          }
+        }
+
         return (
           <article
             className={"event-list-card" + (isSelected ? " selected-event-card" : "")}
@@ -39,7 +53,7 @@ export default function CalendarEventList({
                 <span className={"event-provider-badge tag-" + providerName.toLowerCase()}>
                   {providerName}
                 </span>
-                <span className="event-date-chip">{event.date}</span>
+                <span className="event-date-chip">{formattedDate}</span>
               </div>
 
               {(providerName === "Local" || providerName === "Google") && onEdit && onDelete && (
@@ -59,10 +73,10 @@ export default function CalendarEventList({
             </div>
 
             <div className="event-list-card-details">
-              <span>? {formattedTime}</span>
-              {event.location && <span>?? {event.location}</span>}
+              <span className="detail-item"><Clock size={12} /> {formattedTime}</span>
+              {event.location && <span className="detail-item"><MapPin size={12} /> {event.location}</span>}
               {event.reminderMinutes != null && event.reminderMinutes > 0 && (
-                <span>?? Remind {event.reminderMinutes}m before</span>
+                <span className="detail-item"><Bell size={12} /> Remind {event.reminderMinutes}m before</span>
               )}
             </div>
           </article>

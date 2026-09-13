@@ -289,7 +289,7 @@ body {
   transform: scale(0.95);
 }
 
-@media (max-width: 860px) {
+@media (max-width: 960px) {
   .app-frame {
     flex-direction: column;
     padding-top: 56px;
@@ -1452,5 +1452,70 @@ html, body, .app-frame, .main-content {
 
   .sync-range-box select {
     width: 100% !important;
+  }
+}
+
+/* Event Form Layout & Detail Item Fixes */
+.event-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.event-title-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.event-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.event-form-row input, .event-form-row select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 12px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.add-event-btn {
+  align-self: flex-start;
+  padding: 10px 20px;
+  font-size: 12px;
+}
+
+.detail-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 680px) {
+  .event-form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .add-event-btn {
+    width: 100% !important;
+    justify-content: center !important;
   }
 }

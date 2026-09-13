@@ -435,40 +435,45 @@ export default function CalendarPage() {
             )}
           </div>
           <form className="event-form" onSubmit={saveEvent}>
-            <input
-              required
-              value={draft.title}
-              onChange={(e) => updateDraft("title", e.target.value)}
-              placeholder="Event title"
-              aria-label="Event title"
-            />
-            <input
-              required
-              type="date"
-              value={draft.date}
-              onChange={(e) => updateDraft("date", e.target.value)}
-              aria-label="Event date"
-            />
-            <input
-              type="time"
-              value={draft.time}
-              onChange={(e) => updateDraft("time", e.target.value)}
-              aria-label="Event time"
-            />
-            <select
-              value={draft.reminderMinutes}
-              onChange={(e) => updateDraft("reminderMinutes", e.target.value)}
-              aria-label="Reminder"
-            >
-              <option value="0">No reminder</option>
-              <option value="5">5 min before</option>
-              <option value="15">15 min before</option>
-              <option value="30">30 min before</option>
-              <option value="60">1 hour before</option>
-            </select>
-            <button className="primary-button" type="submit">
-              {editingId ? "Save changes" : "Add event"}
-            </button>
+            <div className="event-form-grid">
+              <input
+                required
+                className="event-title-input"
+                value={draft.title}
+                onChange={(e) => updateDraft("title", e.target.value)}
+                placeholder="Event title"
+                aria-label="Event title"
+              />
+              <div className="event-form-row">
+                <input
+                  required
+                  type="date"
+                  value={draft.date}
+                  onChange={(e) => updateDraft("date", e.target.value)}
+                  aria-label="Event date"
+                />
+                <input
+                  type="time"
+                  value={draft.time}
+                  onChange={(e) => updateDraft("time", e.target.value)}
+                  aria-label="Event time"
+                />
+                <select
+                  value={draft.reminderMinutes}
+                  onChange={(e) => updateDraft("reminderMinutes", e.target.value)}
+                  aria-label="Reminder"
+                >
+                  <option value="0">No reminder</option>
+                  <option value="5">5 min before</option>
+                  <option value="15">15 min before</option>
+                  <option value="30">30 min before</option>
+                  <option value="60">1 hour before</option>
+                </select>
+              </div>
+              <button className="primary-button add-event-btn" type="submit">
+                {editingId ? "Save changes" : "Add event"}
+              </button>
+            </div>
           </form>
         </section>
 
