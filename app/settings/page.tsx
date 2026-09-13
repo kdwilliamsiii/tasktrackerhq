@@ -18,9 +18,9 @@ export default function SettingsPage() {
     <div className="settings-grid">
       <section className="panel">
         <div className="settings-heading"><div><h2>Account</h2><p>Manage your TaskTrackerHQ account.</p></div></div>
-        <div className="account-summary">{session?.user?.image ? <Image className="account-avatar account-avatar-image" src={session.user.image} alt="" width={38} height={38} /> : <span className="account-avatar">{session?.user?.name?.slice(0, 1).toUpperCase() || "?"}</span>}<div><strong>{status === "loading" ? "Checking session..." : session?.user?.name || "Guest user"}</strong><small>{session?.user?.email || "Not signed in"}</small></div>{session && <span className={`role-badge role-${session.user.role}`}>{session.user.role}</span>}</div>
+        <div className="account-summary">{session?.user?.image ? <Image className="account-avatar account-avatar-image" src={session.user.image} alt="" width={38} height={38} /> : <span className="account-avatar">{session?.user?.name?.slice(0, 1).toUpperCase() || "?"}</span>}<div><strong>{status === "loading" ? "Checking session..." : session?.user?.name || "Guest user"}</strong><small>{session?.user?.email || "Not signed in"}</small></div>{session && <span className={"role-badge role-" + session.user.role}>{session.user.role}</span>}</div>
         {session && <dl className="account-details"><div><dt>User ID</dt><dd>{session.user.id || "Unavailable"}</dd></div><div><dt>Provider</dt><dd>{connectedProvider === "azure-ad" ? "Microsoft" : "Google"}</dd></div><div><dt>Account created</dt><dd>{session.user.createdAt ? new Date(session.user.createdAt).toLocaleDateString() : "Available after next sign-in"}</dd></div></dl>}
-        <p className="panel-subtitle">{session ? `Connected through ${connectedProvider === "azure-ad" ? "Microsoft" : "Google"}.` : "Development mode remains available without OAuth."}</p>
+        <p className="panel-subtitle">{session ? ("Connected through " + (connectedProvider === "azure-ad" ? "Microsoft" : "Google") + ".") : "Development mode remains available without OAuth."}</p>
         {session ? <button className="primary-button" onClick={() => void signOut({ callbackUrl: "/" })}>Sign out</button> : <SignInButtons callbackUrl="/settings" />}
       </section>
       <section className="panel">
@@ -40,10 +40,10 @@ export default function SettingsPage() {
         <div className="extension-download-card">
           <div className="extension-download-info">
             <strong>TaskTrackerHQ Extension v1.0</strong>
-            <small>Manifest V3 ? Works with Chrome, Edge, Brave, and Opera</small>
+            <small>Manifest V3 • Works with Chrome, Edge, Brave, and Opera</small>
           </div>
           <a className="primary-button extension-download-btn" href="/tasktrackerhq-extension.zip" download>
-            <span>?</span> Download Extension (.zip)
+            <span>↓</span> Download Extension (.zip)
           </a>
         </div>
         <div className="extension-instructions">
@@ -68,8 +68,8 @@ export default function SettingsPage() {
           <strong>How to install on Mobile:</strong>
           <ol>
             <li>Open <strong>www.tasktrackerhq.app</strong> in Safari (iPhone) or Chrome (Android).</li>
-            <li>On iPhone (Safari): Tap <strong>Share</strong> (bottom) ? <strong>Add to Home Screen</strong>.</li>
-            <li>On Android (Chrome): Tap <strong>? Menu</strong> (top right) ? <strong>Install app</strong>.</li>
+            <li>On iPhone (Safari): Tap <strong>Share</strong> (bottom) → <strong>Add to Home Screen</strong>.</li>
+            <li>On Android (Chrome): Tap <strong>⋮ Menu</strong> (top right) → <strong>Install app</strong>.</li>
           </ol>
         </div>
       </section>
