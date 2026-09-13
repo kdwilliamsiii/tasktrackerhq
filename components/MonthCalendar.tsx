@@ -22,14 +22,27 @@ function toDateKey(date: Date) {
 
 function startOfCalendar(year: number, month: number) {
   const first = new Date(year, month, 1);
-  // Monday-first grid: shift so Monday = 0 ... Sunday = 6.
   const offset = (first.getDay() + 6) % 7;
   const start = new Date(year, month, 1 - offset);
   start.setHours(0, 0, 0, 0);
   return start;
 }
 
-export default function MonthCalendar({ events, selectedDate, onSelectDate, onEventClick, onEventDrop, onExternalDrop }: { events: CalendarListEvent[]; selectedDate: string; onSelectDate: (dateKey: string) => void; onEventClick?: (event: CalendarListEvent) => void; onEventDrop?: (eventId: string, dateKey: string) => void; onExternalDrop?: (e: React.DragEvent, dateKey: string) => void }) {
+export default function MonthCalendar({
+  events,
+  selectedDate,
+  onSelectDate,
+  onEventClick,
+  onEventDrop,
+  onExternalDrop,
+}: {
+  events: CalendarListEvent[];
+  selectedDate: string;
+  onSelectDate: (dateKey: string) => void;
+  onEventClick?: (event: CalendarListEvent) => void;
+  onEventDrop?: (eventId: string, dateKey: string) => void;
+  onExternalDrop?: (e: React.DragEvent, dateKey: string) => void;
+}) {
   const today = useMemo(() => new Date(), []);
   const [cursor, setCursor] = useState(() => {
     const base = selectedDate ? new Date(`${selectedDate}T00:00:00`) : today;
@@ -73,20 +86,19 @@ export default function MonthCalendar({ events, selectedDate, onSelectDate, onEv
   }
 
   function handleDragStart(e: React.DragEvent, event: CalendarListEvent) {
-    if (!isMovable(event)) { e.preventDefault(); return; }
+    if (!isMovable(event)) return;
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", event.id);
+    e.dataTransfer.setData("application/tasktracker-event-id", event.id);
+    e.dataTransfer.setData("text/plain", event.title);
   }
 
   function handleDrop(e: React.DragEvent, dateKey: string) {
     e.preventDefault();
     setDragOverDate(null);
-    const eventId = e.dataTransfer.getData("text/plain");
-    // If eventId matches an existing event ID in our list, move it
+    const eventId = e.dataTransfer.getData("application/tasktracker-event-id");
     if (eventId && events.some((event) => event.id === eventId)) {
       onEventDrop?.(eventId, dateKey);
     } else {
-      // External drag and drop (highlighted text, external calendar item, URL, task)
       onExternalDrop?.(e, dateKey);
     }
   }
@@ -95,9 +107,9 @@ export default function MonthCalendar({ events, selectedDate, onSelectDate, onEv
     <section className="panel calendar-shell">
       <div className="calendar-toolbar">
         <div className="month-nav">
-          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>‹</button>
+          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>?</button>
           <strong>{monthLabel}</strong>
-          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>›</button>
+          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>?</button>
         </div>
         <div className="calendar-actions">
           <button className="filter-button" type="button" onClick={goToToday}>Today</button>
@@ -134,7 +146,11 @@ export default function MonthCalendar({ events, selectedDate, onSelectDate, onEv
                     title={event.title}
                     draggable={isMovable(event)}
                     onDragStart={(e) => handleDragStart(e, event)}
-                    onClick={(e) => { e.stopPropagation(); onEventClick?.(event); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onEventClick?.(event);
+                    }}
                   >
                     {event.title}
                   </button>
