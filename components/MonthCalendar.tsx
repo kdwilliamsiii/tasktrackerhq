@@ -35,11 +35,13 @@ export default function MonthCalendar({
   onEventClick,
   onEventDrop,
   onExternalDrop,
+  onEventDelete,
 }: {
   events: CalendarListEvent[];
   selectedDate: string;
   onSelectDate: (dateKey: string) => void;
   onEventClick?: (event: CalendarListEvent) => void;
+  onEventDelete?: (eventId: string) => void;
   onEventDrop?: (eventId: string, dateKey: string) => void;
   onExternalDrop?: (e: React.DragEvent, dateKey: string) => void;
 }) {
@@ -49,6 +51,7 @@ export default function MonthCalendar({
     return Number.isNaN(base.getTime()) ? new Date(today.getFullYear(), today.getMonth(), 1) : new Date(base.getFullYear(), base.getMonth(), 1);
   });
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const [trashHover, setTrashHover] = useState(false);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarListEvent[]>();
@@ -92,6 +95,16 @@ export default function MonthCalendar({
     e.dataTransfer.setData("text/plain", event.title);
   }
 
+  
+  function handleTrashDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setTrashHover(false);
+    const eventId = e.dataTransfer.getData("application/tasktracker-event-id");
+    if (eventId) {
+      onEventDelete?.(eventId);
+    }
+  }
+
   function handleDrop(e: React.DragEvent, dateKey: string) {
     e.preventDefault();
     setDragOverDate(null);
@@ -107,9 +120,9 @@ export default function MonthCalendar({
     <section className="panel calendar-shell">
       <div className="calendar-toolbar">
         <div className="month-nav">
-          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>?</button>
+          <button type="button" aria-label="Previous month" onClick={() => goToMonth(-1)}>‹</button>
           <strong>{monthLabel}</strong>
-          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>?</button>
+          <button type="button" aria-label="Next month" onClick={() => goToMonth(1)}>›</button>
         </div>
         <div className="calendar-actions">
           <button className="filter-button" type="button" onClick={goToToday}>Today</button>
@@ -161,7 +174,19 @@ export default function MonthCalendar({
           })}
         </div>
       </div>
-      <p className="calendar-legend"><span className="calendar-legend-dot mint" /> Local <span className="calendar-legend-dot blue" /> Google <span className="calendar-legend-dot peach" /> Microsoft</p>
+      <div className="calendar-footer">
+        <p className="calendar-legend"><span className="calendar-legend-dot mint" /> Local <span className="calendar-legend-dot blue" /> Google <span className="calendar-legend-dot peach" /> Microsoft</p>
+        <div
+          className={"calendar-trash-zone" + (trashHover ? " trash-hover" : "")}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (!trashHover) setTrashHover(true); }}
+          onDragLeave={() => setTrashHover(false)}
+          onDrop={handleTrashDrop}
+          title="Drag any local event here to delete"
+        >
+          <span className="trash-icon">╳</span>
+          <span>Drop here to delete</span>
+        </div>
+      </div>
     </section>
   );
 }

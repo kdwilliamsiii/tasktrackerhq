@@ -69,16 +69,36 @@ export default function CalendarPage() {
     integrationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => integrationsRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus(), 250);
   }
+  
+  function handleTrashDelete(eventId: string) {
+    const target = events.find((item) => item.id === eventId);
+    if (!target) return;
+    if (target.provider && target.provider !== "Local") {
+      notify(`${target.provider} events are read-only here. Edit or delete them in ${target.provider}.`, "info");
+      return;
+    }
+    const next = events.filter((item) => item.id !== eventId);
+    setEvents(next);
+    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    if (editingId === eventId) resetDraft();
+    notify(`Deleted "${target.title}".`, "info");
+  }
+
   function selectDate(dateKey: string) {
     setDraft((current) => ({ ...current, date: dateKey }));
   }
-  function openEventFromCalendar(event: EventItem) {
+    function openEventFromCalendar(event: EventItem) {
     if (event.provider && event.provider !== "Local") {
       notify(`${event.provider} events are read-only here. Edit them in ${event.provider}.`, "info");
       return;
     }
     editEvent(event);
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const itemEl = document.getElementById("event-item-" + event.id);
+    if (itemEl) {
+      itemEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
   
   function handleExternalDrop(e: React.DragEvent, dateKey: string) {
@@ -162,7 +182,7 @@ export default function CalendarPage() {
   }
   return <AppShell active="Calendar" eyebrow="Workspace" title="Calendar" description="See what's happening and keep your commitments in view." action={<PrimaryButton onClick={focusIntegrations}>Connect calendar</PrimaryButton>}>
     <TTBotHint command="show today's schedule">TT Bot can help you spot meetings starting soon and keep your schedule in view.</TTBotHint>
-    <MonthCalendar events={events} selectedDate={draft.date} onSelectDate={selectDate} onEventClick={openEventFromCalendar} onEventDrop={moveEvent} onExternalDrop={handleExternalDrop} />
-    <div className="dashboard-grid"><section className="panel" ref={formRef}><div className="panel-header"><div><h2>{editingId ? "Edit event" : "Add an event"}</h2><p>{editingId ? "Update your local event details." : "Add a local event or connect a calendar below."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div><form className="event-form" onSubmit={saveEvent}><input required value={draft.title} onChange={(e) => updateDraft("title", e.target.value)} placeholder="Event title" aria-label="Event title" /><input required type="date" value={draft.date} onChange={(e) => updateDraft("date", e.target.value)} aria-label="Event date" /><input type="time" value={draft.time} onChange={(e) => updateDraft("time", e.target.value)} aria-label="Event time" /><select value={draft.reminderMinutes} onChange={(e) => updateDraft("reminderMinutes", e.target.value)} aria-label="Reminder"><option value="0">No reminder</option><option value="5">5 min before</option><option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option></select><button className="primary-button" type="submit">{editingId ? "Save changes" : "Add event"}</button></form><CalendarEventList events={[...events].sort((a,b) => `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`))} onEdit={editEvent} onDelete={deleteEvent} />{!events.length && <p className="empty-state">No events yet.</p>}</section><section className="panel" ref={integrationsRef} tabIndex={-1}><h2>Calendar integrations</h2><p className="panel-subtitle">Connect a provider to sync events.</p><label className="sync-range-label">Sync events from the last<select value={syncMonthsBack} onChange={(e) => setSyncMonthsBack(e.target.value)} aria-label="Sync range"><option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">1 year</option></select></label><div className="integration-row"><span>Google Calendar</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>{syncing === "google" ? "Syncing..." : "Sync"}</button></div><div className="integration-row"><span>Microsoft Outlook</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>{syncing === "microsoft" ? "Syncing..." : "Sync"}</button></div>{message && <p className="form-success" role="status">{message}</p>}</section></div>
+    <MonthCalendar events={events} selectedDate={draft.date} onSelectDate={selectDate} onEventClick={openEventFromCalendar} onEventDrop={moveEvent} onExternalDrop={handleExternalDrop} onEventDelete={handleTrashDelete} />
+    <div className="dashboard-grid"><section className="panel" ref={formRef}><div className="panel-header"><div><h2>{editingId ? "Edit event" : "Add an event"}</h2><p>{editingId ? "Update your local event details." : "Add a local event or connect a calendar below."}</p></div>{editingId && <button className="text-button" type="button" onClick={resetDraft}>Cancel edit</button>}</div><form className="event-form" onSubmit={saveEvent}><input required value={draft.title} onChange={(e) => updateDraft("title", e.target.value)} placeholder="Event title" aria-label="Event title" /><input required type="date" value={draft.date} onChange={(e) => updateDraft("date", e.target.value)} aria-label="Event date" /><input type="time" value={draft.time} onChange={(e) => updateDraft("time", e.target.value)} aria-label="Event time" /><select value={draft.reminderMinutes} onChange={(e) => updateDraft("reminderMinutes", e.target.value)} aria-label="Reminder"><option value="0">No reminder</option><option value="5">5 min before</option><option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option></select><button className="primary-button" type="submit">{editingId ? "Save changes" : "Add event"}</button></form><CalendarEventList selectedEventId={editingId} events={[...events].sort((a,b) => `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`))} onEdit={editEvent} onDelete={deleteEvent} />{!events.length && <p className="empty-state">No events yet.</p>}</section><section className="panel" ref={integrationsRef} tabIndex={-1}><h2>Calendar integrations</h2><p className="panel-subtitle">Connect a provider to sync events.</p><label className="sync-range-label">Sync events from the last<select value={syncMonthsBack} onChange={(e) => setSyncMonthsBack(e.target.value)} aria-label="Sync range"><option value="1">1 month</option><option value="3">3 months</option><option value="6">6 months</option><option value="12">1 year</option></select></label><div className="integration-row"><span>Google Calendar</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("google")}>{syncing === "google" ? "Syncing..." : "Sync"}</button></div><div className="integration-row"><span>Microsoft Outlook</span><button className="filter-button" disabled={Boolean(syncing)} onClick={() => sync("microsoft")}>{syncing === "microsoft" ? "Syncing..." : "Sync"}</button></div>{message && <p className="form-success" role="status">{message}</p>}</section></div>
   </AppShell>;
 }

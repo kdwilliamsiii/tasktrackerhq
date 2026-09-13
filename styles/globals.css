@@ -624,3 +624,56 @@ body {
     align-items: flex-start;
   }
 }
+
+/* Calendar Trash Drop Zone and Highlighted List Item */
+.calendar-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-top: 1px solid var(--line);
+}
+.calendar-footer .calendar-legend {
+  border-top: 0;
+  padding: 0;
+}
+.calendar-trash-zone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1.5px dashed var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.calendar-trash-zone.trash-hover {
+  border-color: #c96e4c;
+  background: #fff0e8;
+  color: #c96e4c;
+  transform: scale(1.04);
+}
+.trash-icon {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.calendar-event-item {
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.selected-event-item {
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface)) !important;
+  border-left: 3px solid var(--teal);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--teal) 15%, transparent);
+}
+
+@media (max-width: 600px) {
+  .calendar-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
