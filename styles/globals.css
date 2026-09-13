@@ -679,3 +679,22 @@ body {
     gap: 10px;
   }
 }
+
+/* Notification Sound Settings Styles */
+.sound-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sound-picker-row select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 11px;
+}
+.sound-picker-row select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,4 +1,5 @@
 "use client";
+import NotificationSettings from "../../components/NotificationSettings";
 import { SignInButtons } from "../../components/SignInButtons";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
@@ -73,6 +74,7 @@ export default function SettingsPage() {
           </ol>
         </div>
       </section>
+      <NotificationSettings />
       <ThemeCustomizer />
     </div>
   </AppShell>;
