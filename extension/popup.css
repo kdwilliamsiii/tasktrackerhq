@@ -163,6 +163,12 @@ html, body {
   margin-bottom: 4px;
 }
 
+.header-action-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn-text {
   border: 0;
   background: transparent;

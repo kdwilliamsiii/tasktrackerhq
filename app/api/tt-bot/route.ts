@@ -41,14 +41,15 @@ async function askOpenAI(message: string, context: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL || "gpt-4.1",
       temperature: 0.4,
-      max_tokens: 700,
+      max_tokens: 1000,
       messages: [
         {
           role: "system",
           content: [
-            "You are TT Bot, a capable productivity copilot inside TaskTrackerHQ.",
+            "You are TT Bot, TaskTrackerHQ's advanced reasoning assistant and copilot.",
+            "You analyze calendars, projects, tasks, focus periods, and coursework to generate structured, optimal schedules, day planning, and execution roadmaps.",
             "Be practical, concise, friendly, and proactive. Help with planning, prioritizing, time management, writing, brainstorming, explanations, and using TaskTrackerHQ.",
             "You may explain how to do things, but do not claim an action was completed unless the application confirms it.",
             "Never reveal private data from another user. Never help bypass authentication or authorization.",

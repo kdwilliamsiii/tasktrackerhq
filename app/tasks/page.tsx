@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
-import { Search, Download, CheckSquare, Trash2, Filter } from "lucide-react";
+import { Search, Download, CheckSquare, Trash2, Filter, Sparkles } from "lucide-react";
+import { callAiAssistant } from "../../lib/ai";
 
 type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
@@ -28,6 +29,7 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [sort, setSort] = useState("updated");
+  const [polishing, setPolishing] = useState(false);
   const { notify } = useNotifications();
 
   const load = useCallback(async () => {
@@ -75,6 +77,29 @@ export default function TasksPage() {
   function resetDraft() {
     setEditingId(null);
     setDraft(emptyDraft);
+  }
+
+  async function polishTaskTitle() {
+    if (!draft.title.trim()) {
+      setError("Enter a task title first to polish with AI.");
+      return;
+    }
+    setPolishing(true);
+    setError("");
+    try {
+      const polished = await callAiAssistant(
+        `Make this task title clearer, actionable, and concise: "${draft.title}"`,
+        "fast"
+      );
+      if (polished) {
+        updateDraft("title", polished.trim().replace(/^"|"$/g, ""));
+        notify("Task title polished with Fast AI.", "success");
+      }
+    } catch {
+      setError("Could not polish title with AI.");
+    } finally {
+      setPolishing(false);
+    }
   }
 
   async function saveTask(event: React.FormEvent) {
@@ -216,7 +241,29 @@ export default function TasksPage() {
         </div>
         <form onSubmit={saveTask} className="task-form-grid">
           <label className="task-field task-field-wide">
-            Task title
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Task title</span>
+              <button
+                type="button"
+                onClick={polishTaskTitle}
+                disabled={polishing || !draft.title.trim()}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  color: "var(--teal)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: 0,
+                }}
+              >
+                <Sparkles size={12} />
+                {polishing ? "Polishing..." : "Fast AI Polish"}
+              </button>
+            </div>
             <input
               value={draft.title}
               onChange={(event) => updateDraft("title", event.target.value)}

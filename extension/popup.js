@@ -40,6 +40,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // AI Polish / Quick Rewrite
+  const aiRewriteBtn = document.getElementById("aiRewriteBtn");
+  if (aiRewriteBtn) {
+    aiRewriteBtn.addEventListener("click", async () => {
+      const titleInput = document.getElementById("taskTitle");
+      const current = titleInput.value.trim();
+      if (!current) {
+        captureStatus.textContent = "Enter a task title first to polish with AI.";
+        captureStatus.className = "status-msg error";
+        return;
+      }
+
+      const originalBtnText = aiRewriteBtn.textContent;
+      aiRewriteBtn.textContent = "✦ Polishing...";
+      aiRewriteBtn.disabled = true;
+
+      try {
+        const url = await getServerUrl();
+        const res = await fetch(`${url}/api/ai/fast`, {
+          credentials: "include",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: `Make this task title clearer, actionable, and concise: "${current}"` })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reply) {
+            titleInput.value = data.reply.trim().replace(/^"|"$/g, "");
+            captureStatus.textContent = "Task title polished with Fast AI!";
+            captureStatus.className = "status-msg success";
+            setTimeout(() => { captureStatus.textContent = ""; }, 3000);
+          }
+        }
+      } catch {
+        captureStatus.textContent = "Could not contact AI service.";
+        captureStatus.className = "status-msg error";
+      } finally {
+        aiRewriteBtn.textContent = originalBtnText;
+        aiRewriteBtn.disabled = false;
+      }
+    });
+  }
+
   // Save Task Form
   const captureForm = document.getElementById("captureForm");
   const captureStatus = document.getElementById("captureStatus");
