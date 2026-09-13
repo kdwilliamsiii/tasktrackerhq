@@ -138,9 +138,12 @@ export default function CalendarPage() {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
-  function resetDraft() {
+  function resetDraft(returnToEvents = false) {
     setEditingId(null);
     setDraft({ ...emptyDraft, date: new Date().toISOString().slice(0, 10) });
+    if (returnToEvents) {
+      setActiveSection("events");
+    }
   }
 
   async function saveEvent(e: React.FormEvent) {
@@ -565,7 +568,7 @@ export default function CalendarPage() {
               </div>
             </div>
             {editingId && (
-              <button className="text-button" type="button" onClick={resetDraft}>
+              <button className="text-button" type="button" onClick={() => resetDraft(true)}>
                 Cancel edit
               </button>
             )}

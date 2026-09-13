@@ -1,4 +1,4 @@
-import { Clock, MapPin, Bell, Calendar } from "lucide-react";
+import { Clock, MapPin, Bell, Calendar, CalendarX } from "lucide-react";
 
 export type CalendarListEvent = {
   id: string;
@@ -23,6 +23,16 @@ export default function CalendarEventList({
   onReschedule?: (event: CalendarListEvent, newDate: string) => void;
   onDelete?: (event: CalendarListEvent) => void;
 }) {
+  if (events.length === 0) {
+    return (
+      <div className="calendar-empty-card">
+        <CalendarX size={32} className="calendar-empty-icon" />
+        <strong>No scheduled events found</strong>
+        <p>There are no events matching this filter. Add an event above or sync your Google/Microsoft calendar.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="calendar-event-card-list">
       {events.map((event) => {
