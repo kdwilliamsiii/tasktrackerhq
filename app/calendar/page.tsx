@@ -117,7 +117,7 @@ export default function CalendarPage() {
   }
 
   function editEvent(event: EventItem) {
-    if (event.provider && event.provider !== "Local" && event.provider !== "Google") {
+    if (event.provider && event.provider !== "Local") {
       notify(event.provider + " events are read-only here. Edit them in " + event.provider + ".", "info");
       return;
     }

@@ -31,7 +31,7 @@ export default function CalendarEventList({
                 {event.reminderMinutes != null ? " · Remind " + event.reminderMinutes + " min before" : ""}
               </small>
             </div>
-            {(event.provider === "Local" || event.provider === "Google") && onEdit && onDelete && (
+            {event.provider === "Local" && onEdit && onDelete && (
               <div className="calendar-event-actions">
                 <button className="text-button" type="button" onClick={() => onEdit(event)}>
                   Edit
