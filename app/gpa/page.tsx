@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
@@ -49,42 +49,63 @@ function getLetterGrade(percentage: number): { letter: string; gpaPoints: number
 
 export default function GpaPage() {
   const formRef = useRef<HTMLElement>(null);
-  const [classes, setClasses] = useState<CourseClass[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("tasktracker-gpa-classes");
-        if (stored) {
-          const parsed = JSON.parse(stored) as Record<string, unknown>[];
-          return parsed.map((item) => ({
-            id: String(item.id || crypto.randomUUID()),
-            name: String(item.name || "Untitled Class"),
-            code: String(item.code || "COURSE"),
-            credits: Number(item.credits) || 3,
-            pointsEarned: Number(item.pointsEarned) || 0,
-            currentPossible: Number(item.currentPossible ?? item.pointsPossible) || 100,
-            totalPossible: Number(item.totalPossible ?? item.pointsPossible) || 100,
-          }));
-        }
-      } catch {
-        // Fallback
-      }
-      return [
-        { id: crypto.randomUUID(), name: "Intro to Computer Science", code: "CS 101", credits: 3, pointsEarned: 270, currentPossible: 300, totalPossible: 500 },
-        { id: crypto.randomUUID(), name: "Academic Writing", code: "WRTG 111", credits: 3, pointsEarned: 190, currentPossible: 200, totalPossible: 400 },
-      ];
-    }
-    return [];
-  });
-
+  const [classes, setClasses] = useState<CourseClass[]>([]);
   const [draft, setDraft] = useState<ClassDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const { notify } = useNotifications();
 
+  const loadClasses = async () => {
+    try {
+      const stored = localStorage.getItem("tasktracker-gpa-classes");
+      const localList: CourseClass[] = stored ? JSON.parse(stored) : [];
+      const map = new Map<string, CourseClass>();
+      for (const item of localList) map.set(item.id, item);
+
+      const res = await fetch("/api/gpa", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.classes && Array.isArray(data.classes)) {
+          for (const item of data.classes) map.set(item.id, item);
+        }
+      }
+
+      const merged = Array.from(map.values());
+      setClasses(merged);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tasktracker-gpa-classes", JSON.stringify(merged));
+      }
+    } catch {
+      try {
+        const stored = localStorage.getItem("tasktracker-gpa-classes");
+        if (stored) setClasses(JSON.parse(stored));
+      } catch {
+        setClasses([]);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadClasses();
+    }, 0);
+
+    const handleUpdate = () => {
+      void loadClasses();
+    };
+
+    window.addEventListener("tasktracker-data-changed", handleUpdate);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("tasktracker-data-changed", handleUpdate);
+    };
+  }, []);
+
   function saveClasses(next: CourseClass[]) {
     setClasses(next);
     if (typeof window !== "undefined") {
       localStorage.setItem("tasktracker-gpa-classes", JSON.stringify(next));
+      window.dispatchEvent(new Event("tasktracker-data-changed"));
     }
   }
 
@@ -112,7 +133,7 @@ export default function GpaPage() {
     setError("");
   }
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!draft.name.trim()) {
       setError("Please enter a class name.");
@@ -142,6 +163,16 @@ export default function GpaPage() {
       totalPossible: totalPossible > 0 ? totalPossible : currentPossible,
     };
 
+    try {
+      await fetch("/api/gpa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newItem),
+      });
+    } catch {
+      // Offline fallback
+    }
+
     const next = editingId
       ? classes.map((c) => (c.id === editingId ? newItem : c))
       : [...classes, newItem];
@@ -151,10 +182,19 @@ export default function GpaPage() {
     notify(editingId ? "Class updated." : "Class added.", "success");
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     const target = classes.find((c) => c.id === id);
     if (!target) return;
-    if (!window.confirm(`Delete "${target.name}"?`)) return;
+    if (!window.confirm('Delete "' + target.name + '"?')) return;
+
+    try {
+      await fetch("/api/gpa?id=" + encodeURIComponent(id), {
+        method: "DELETE",
+      });
+    } catch {
+      // Offline fallback
+    }
+
     const next = classes.filter((c) => c.id !== id);
     saveClasses(next);
     if (editingId === id) resetDraft();
@@ -169,7 +209,6 @@ export default function GpaPage() {
     let currentPossibleSum = 0;
 
     const list = classes.map((item) => {
-      // Calculate current percentage based on points graded so far
       const currentPct = item.currentPossible > 0 ? (item.pointsEarned / item.currentPossible) * 100 : 0;
       const { letter, gpaPoints } = getLetterGrade(currentPct);
       const qualityPoints = gpaPoints * item.credits;
@@ -334,7 +373,7 @@ export default function GpaPage() {
                     <span className="gpa-course-code">{item.code} ({item.credits} cr)</span>
                   </div>
                   <div className="gpa-progress-bar">
-                    <span style={{ width: `${Math.min(100, Math.max(0, item.currentPercentage))}%` }} />
+                    <span style={{ width: Math.min(100, Math.max(0, item.currentPercentage)) + "%" }} />
                   </div>
                   <div className="gpa-class-meta">
                     <span>Graded so far: <b>{item.pointsEarned} / {item.currentPossible}</b></span>

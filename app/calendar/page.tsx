@@ -34,17 +34,30 @@ export default function CalendarPage() {
   const loadEvents = async () => {
     try {
       const localStored = JSON.parse(localStorage.getItem("tasktracker-events") || "[]") as EventItem[];
-      // Keep only current local storage events and map uniquely
       const map = new Map<string, EventItem>();
       for (const e of localStored) {
-        const key = (e.provider || "Local") + "-" + e.id;
-        map.set(key, e);
+        map.set((e.provider || "Local") + "-" + e.id, e);
       }
-      const uniqueList = Array.from(map.values());
-      setEvents(uniqueList);
-      localStorage.setItem("tasktracker-events", JSON.stringify(uniqueList));
+
+      const res = await fetch("/api/events", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.events && Array.isArray(data.events)) {
+          for (const e of data.events) {
+            map.set((e.provider || "Local") + "-" + e.id, e);
+          }
+        }
+      }
+
+      const merged = Array.from(map.values());
+      setEvents(merged);
+      localStorage.setItem("tasktracker-events", JSON.stringify(merged));
     } catch {
-      setEvents([]);
+      try {
+        setEvents(JSON.parse(localStorage.getItem("tasktracker-events") || "[]"));
+      } catch {
+        setEvents([]);
+      }
     }
   };
 
@@ -52,7 +65,14 @@ export default function CalendarPage() {
     const timer = window.setTimeout(() => {
       void loadEvents();
     }, 0);
-    return () => window.clearTimeout(timer);
+    const handleUpdate = () => { void loadEvents(); };
+    window.addEventListener("tasktracker-data-changed", handleUpdate);
+    window.addEventListener("tasktracker-quick-add", handleUpdate);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("tasktracker-data-changed", handleUpdate);
+      window.removeEventListener("tasktracker-quick-add", handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -136,7 +156,7 @@ export default function CalendarPage() {
       : [...events, updated];
 
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     resetDraft();
     if (target?.provider !== "Google") {
       notify(editingId ? "Calendar event updated." : "Calendar event added.", "success");
@@ -188,7 +208,7 @@ export default function CalendarPage() {
 
     const next = events.filter((item) => item.id !== event.id);
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     if (editingId === event.id) resetDraft();
     if (event.provider !== "Google") {
       notify("Calendar event deleted.", "info");
@@ -276,7 +296,7 @@ export default function CalendarPage() {
 
     const next = [...events, newEvent];
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     notify('Created event "' + (title.length > 30 ? title.slice(0, 30) + "..." : title) + '" on ' + dateKey + ".", "success");
   }
 
@@ -330,7 +350,7 @@ export default function CalendarPage() {
 
     const next = events.map((event) => (event.id === eventId ? { ...event, date: dateKey, time } : event));
     setEvents(next);
-    localStorage.setItem("tasktracker-events", JSON.stringify(next));
+    localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
     if (target.provider !== "Google") {
       notify('"' + target.title + '" moved to ' + dateKey + ".", "success");
     }
@@ -357,7 +377,7 @@ export default function CalendarPage() {
       const keptEvents = events.filter((event) => event.provider !== providerLabel);
       const next = [...keptEvents, ...syncedEvents];
       setEvents(next);
-      localStorage.setItem("tasktracker-events", JSON.stringify(next));
+      localStorage.setItem("tasktracker-events", JSON.stringify(next)); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
 
 
 

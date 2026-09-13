@@ -30,7 +30,7 @@ export default function TasksPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/tasks");
+      const response = await fetch("/api/tasks", { cache: "no-store" });
       if (!response.ok) throw new Error("Unable to load tasks");
       const data = await response.json();
       setTasks(data.tasks || []);
@@ -82,7 +82,7 @@ export default function TasksPage() {
       });
       if (!response.ok) throw new Error("Unable to save task");
       resetDraft();
-      notify(editingId ? "Task updated." : "Task created.", "success");
+      notify(editingId ? "Task updated." : "Task created.", "success"); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed"));
       await load();
     } catch {
       setError("The task could not be saved. Please try again.");
@@ -97,13 +97,13 @@ export default function TasksPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: task.id, ...changes }),
     });
-    if (response.ok) { notify(changes.completed ? "Task marked complete." : "Task reopened.", "success"); await load(); }
+    if (response.ok) { notify(changes.completed ? "Task marked complete." : "Task reopened.", "success"); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed")); await load(); }
     else setError("The task could not be updated.");
   }
 
   async function remove(id: string) {
     const response = await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (response.ok) { setTasks((old) => old.filter((task) => task.id !== id)); notify("Task deleted.", "info"); }
+    if (response.ok) { setTasks((old) => old.filter((task) => task.id !== id)); notify("Task deleted.", "info"); if (typeof window !== "undefined") window.dispatchEvent(new Event("tasktracker-data-changed")); }
     else setError("The task could not be deleted.");
   }
 

@@ -115,3 +115,32 @@ export async function deleteCalendarEventDb(id: string) {
   const result = await eventsCollection().deleteOne({ id });
   return result.deletedCount > 0;
 }
+
+export type GpaClass = {
+  id: string;
+  userId?: string;
+  name: string;
+  code: string;
+  credits: number;
+  pointsEarned: number;
+  currentPossible: number;
+  totalPossible: number;
+};
+
+const gpaClassesCollection = () => db.collection<GpaClass>("gpa_classes");
+
+export async function listGpaClasses(userId?: string) {
+  const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+  return gpaClassesCollection().find(query, { projection: { _id: 0 } }).toArray();
+}
+
+export async function saveGpaClassDb(input: GpaClass) {
+  const item = { ...input, id: input.id || crypto.randomUUID() };
+  await gpaClassesCollection().updateOne({ id: item.id }, { $set: item }, { upsert: true });
+  return item;
+}
+
+export async function deleteGpaClassDb(id: string) {
+  const result = await gpaClassesCollection().deleteOne({ id });
+  return result.deletedCount > 0;
+}
