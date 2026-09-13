@@ -37,6 +37,20 @@ export async function saveUserProfile(profile: UserProfile) {
   );
 }
 
+
+export async function getUserProfile(id: string) {
+  return db.collection<UserProfile>("users").findOne({ id }, { projection: { _id: 0 } });
+}
+
+export async function updateUserProfileTheme(id: string, theme: Record<string, unknown>) {
+  const result = await db.collection<UserProfile>("users").findOneAndUpdate(
+    { id },
+    { $set: { theme, updatedAt: new Date().toISOString() } },
+    { returnDocument: "after", projection: { _id: 0 } }
+  );
+  return result;
+}
+
 export async function deleteUserProfile(id: string) {
   const result = await db.collection<UserProfile>("users").deleteOne({ id });
   return result.deletedCount > 0;

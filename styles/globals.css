@@ -863,3 +863,82 @@ body {
     padding: 10px 12px;
   }
 }
+
+/* Strict Mobile Screen-Fit (Zero Side-to-Side Horizontal Scroll) */
+html, body, .app-frame, .main-content {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.page-content {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 600px) {
+  .page-content {
+    padding: 16px 12px 36px !important;
+  }
+
+  .dashboard-hero {
+    padding: 18px 16px !important;
+  }
+
+  .dashboard-hero h2 {
+    font-size: 20px !important;
+  }
+
+  .calendar-panel {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .calendar-cell {
+    min-height: 62px !important;
+    padding: 3px !important;
+  }
+
+  .calendar-cell .date-number {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 9px !important;
+    padding: 2px !important;
+  }
+
+  .calendar-event {
+    font-size: 8px !important;
+    padding: 2px 3px !important;
+    margin-top: 3px !important;
+  }
+
+  .calendar-weekdays span {
+    padding: 8px 1px !important;
+    font-size: 8px !important;
+    text-align: center !important;
+  }
+
+  .quick-add-form {
+    flex-direction: column !important;
+  }
+
+  .quick-add-form select, .quick-add-form input, .quick-add-form button {
+    width: 100% !important;
+  }
+
+  .task-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .task-field-wide {
+    grid-column: span 1 !important;
+  }
+
+  .gpa-summary-hero {
+    padding: 18px 16px !important;
+  }
+
+  .gpa-main-stat h2 {
+    font-size: 32px !important;
+  }
+}
