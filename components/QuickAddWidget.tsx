@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useAuthGate } from "./AuthModalProvider";
 import { broadcastDataChanged } from "../lib/sync";
 
@@ -22,28 +22,44 @@ export default function QuickAddWidget() {
   const [categorySuggestions, setCategorySuggestions] = useState<string[]>(defaultCategorySuggestions);
   const { requireAuth } = useAuthGate();
 
-  const loadSuggestions = useCallback(async () => {
-    try {
-      const response = await fetch("/api/tasks", { cache: "no-store" });
-      if (!response.ok) throw new Error("Unable to load categories");
-      const data = await response.json();
-      const categories = Array.from(new Set([
-        ...defaultCategorySuggestions,
-        ...((data.tasks || [])
-          .map((item: { category?: string }) => item.category)
-          .filter((item): item is string => Boolean(item && item.trim())))
-      ])).sort((a, b) => a.localeCompare(b));
-      setCategorySuggestions(categories);
-    } catch {
-      setCategorySuggestions(defaultCategorySuggestions);
+  useEffect(() => {
+    async function loadSuggestions() {
+      try {
+        const response = await fetch("/api/tasks", { cache: "no-store" });
+        if (!response.ok) throw new Error("Unable to load categories");
+        const data = await response.json();
+        const categories = Array.from(
+          new Set([
+            ...defaultCategorySuggestions,
+            ...((data.tasks || [])
+              .map((item: { category?: string }) => item.category)
+              .filter((item: unknown): item is string => typeof item === "string" && Boolean(item.trim()))),
+          ])
+        ).sort((a, b) => a.localeCompare(b));
+        setCategorySuggestions(categories);
+      } catch {
+        setCategorySuggestions(defaultCategorySuggestions);
+      }
     }
+
+    const timer = window.setTimeout(() => {
+      void loadSuggestions();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    // Initial category suggestions are hydrated on mount so the dropdown reflects existing task categories.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadSuggestions();
-  }, [loadSuggestions]);
+  function handleTypeChange(nextType: QuickAddType) {
+    setType(nextType);
+    setCategory((current) => {
+      const trimmed = current.trim();
+      const defaultValues = Object.values(defaultCategoryByType);
+      if (!trimmed || defaultValues.includes(trimmed)) {
+        return defaultCategoryByType[nextType];
+      }
+      return trimmed;
+    });
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +71,7 @@ export default function QuickAddWidget() {
 
       try {
         const title = value.trim();
-        const categoryValue = category.trim() || (type === "task" ? "Quick add" : type === "note" ? "Note" : "Reminder");
+        const categoryValue = category.trim() || defaultCategoryByType[type];
 
         const response = await fetch("/api/tasks", {
           method: "POST",
@@ -96,39 +112,34 @@ export default function QuickAddWidget() {
         </div>
         <span className="quick-add-plus">+</span>
       </div>
-      <form onSubmit={submit} className="quick-add-form">
+      <form onSubmit={submit} className="quick-add-form" suppressHydrationWarning>
         <select
           value={type}
-          onChange={(event) => {
-            const nextType = event.target.value as QuickAddType;
-            setType(nextType);
-            setCategory((current) => {
-              const trimmed = current.trim();
-              if (!trimmed || [defaultCategoryByType.task, defaultCategoryByType.note, defaultCategoryByType.reminder].includes(trimmed)) {
-                return defaultCategoryByType[nextType];
-              }
-              return trimmed;
-            });
-          }}
+          onChange={(event) => handleTypeChange(event.target.value as QuickAddType)}
           aria-label="Quick add type"
+          suppressHydrationWarning
         >
           <option value="task">Task</option>
           <option value="note">Note</option>
           <option value="reminder">Reminder</option>
         </select>
         <input
+          type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
           placeholder={"Add a " + type + "..."}
           aria-label={"Add a " + type}
+          suppressHydrationWarning
         />
         <input
+          type="text"
           list="quick-add-category-suggestions"
           value={category}
           onChange={(event) => setCategory(event.target.value)}
           placeholder="Category"
           aria-label="Task category"
           style={{ minWidth: 110 }}
+          suppressHydrationWarning
         />
         <datalist id="quick-add-category-suggestions">
           {categorySuggestions.map((suggestion) => (
