@@ -2,8 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback } from "react";
 import { useSession, signIn } from "next-auth/react";
-import Image from "next/image";
-import { X, Lock, CheckCircle2, ArrowRight } from "lucide-react";
+import { X, Lock, CheckCircle2 } from "lucide-react";
 
 type AuthContextType = {
   isAuthenticated: boolean;

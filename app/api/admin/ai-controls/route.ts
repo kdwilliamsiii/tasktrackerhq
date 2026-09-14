@@ -5,7 +5,6 @@ import {
   adminUpdateUser,
   adminResetUserUsage,
   updateGlobalFeatureToggles,
-  getGlobalFeatureToggles,
 } from "../../../../lib/db";
 
 export async function POST(req: Request) {

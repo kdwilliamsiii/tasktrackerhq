@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Sparkles, Cpu, Zap, RefreshCw, ShieldCheck, ArrowUpRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Sparkles, Cpu, RefreshCw, ShieldCheck, ArrowUpRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useNotifications } from "./NotificationProvider";
 
 type MonthlyStats = {
@@ -37,7 +37,7 @@ export default function AiUsageWidget() {
   const [updatingTier, setUpdatingTier] = useState(false);
   const { notify } = useNotifications();
 
-  const fetchUsage = async () => {
+  const fetchUsage = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/ai/track");
@@ -53,11 +53,13 @@ export default function AiUsageWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchUsage();
-  }, []);
+    // Initial AI usage hydration is intentionally triggered on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchUsage();
+  }, [fetchUsage]);
 
   const switchTier = async (newTier: "free" | "pro" | "enterprise") => {
     setUpdatingTier(true);

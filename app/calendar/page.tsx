@@ -5,7 +5,7 @@ import CalendarEventList, { type CalendarListEvent } from "../../components/Cale
 import MonthCalendar from "../../components/MonthCalendar";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
-import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2, Lock } from "lucide-react";
+import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2 } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
 import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 

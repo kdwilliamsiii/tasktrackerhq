@@ -35,8 +35,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (tab) {
         document.getElementById("taskTitle").value = `${tab.title || "Web Link"} (${tab.url})`;
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      console.error("Unable to fill page details.");
     }
   });
 
@@ -89,6 +89,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Save Task Form
   const captureForm = document.getElementById("captureForm");
   const captureStatus = document.getElementById("captureStatus");
+  const taskCategoryInput = document.getElementById("taskCategory");
+  const taskCategorySuggestions = document.getElementById("taskCategorySuggestions");
+
+  function populateCategorySuggestions(tasks = []) {
+    const categories = Array.from(new Set(
+      (tasks || [])
+        .map(t => (typeof t.category === "string" ? t.category.trim() : ""))
+        .filter(Boolean)
+    ));
+
+    if (!taskCategorySuggestions) return;
+
+    const defaultCategories = ["Web Capture", "General", "Work", "Study", "Personal", "Errands"];
+    const combined = Array.from(new Set([...defaultCategories, ...categories]));
+    taskCategorySuggestions.innerHTML = combined.map(category => `<option value="${escapeHtml(category)}"></option>`).join("");
+
+    if (!taskCategoryInput.value.trim()) {
+      taskCategoryInput.value = "Web Capture";
+    }
+  }
+
+  async function refreshCategorySuggestions() {
+    try {
+      const url = await getServerUrl();
+      const res = await fetch(`${url}/api/tasks`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch tasks");
+      const data = await res.json();
+      populateCategorySuggestions(data.tasks || []);
+    } catch {
+      populateCategorySuggestions();
+    }
+  }
+
+  void refreshCategorySuggestions();
 
   captureForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -112,13 +146,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         captureStatus.textContent = "Task saved to TaskTrackerHQ!";
         captureStatus.classList.add("success");
         document.getElementById("taskTitle").value = "";
+        await refreshCategorySuggestions();
         loadTasks();
       } else {
         const err = await res.json().catch(() => ({}));
         captureStatus.textContent = err.error || "Failed to save task.";
         captureStatus.classList.add("error");
       }
-    } catch (err) {
+    } catch {
       captureStatus.textContent = "Unable to connect to server.";
       captureStatus.classList.add("error");
     }
@@ -186,7 +221,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           loadTasks();
         });
       });
-    } catch (e) {
+    } catch {
       taskList.innerHTML = '<div class="empty-state">Unable to load tasks from server.</div>';
     }
   }
@@ -396,7 +431,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       const data = await res.json();
       loadingDiv.querySelector("p").textContent = data.reply || data.error || "Unable to process request.";
-    } catch (err) {
+    } catch {
       loadingDiv.querySelector("p").textContent = "Unable to connect to TT Bot.";
     }
   });

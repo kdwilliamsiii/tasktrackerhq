@@ -4,7 +4,7 @@ import { authOptions, isAdmin } from "../../../../lib/auth";
 import { getAdminAiAnalytics, getGlobalFeatureToggles } from "../../../../lib/db";
 import { PRICING_TIERS } from "../../../../lib/ai-tiers";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session || !isAdmin(session)) {

@@ -40,6 +40,10 @@ export default function FeedbackReviewPage() {
   }
 
   async function remove(id: string) {
+    const suggestion = suggestions.find((item) => item.id === id);
+    if (!suggestion) return;
+    if (!window.confirm('Delete suggestion "' + suggestion.featureName + '"?')) return;
+
     const response = await fetch("/api/admin/feedback", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     if (response.ok) { setSuggestions((items) => items.filter((item) => item.id !== id)); notify("Suggestion deleted.", "info"); }
     else setError("Unable to delete suggestion.");

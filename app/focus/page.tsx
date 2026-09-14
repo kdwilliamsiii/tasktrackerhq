@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
-import { Play, Pause, RotateCcw, Volume2, VolumeX, CheckCircle2, Sparkles, Coffee, Lock } from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, CheckCircle2 } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
 import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 
@@ -66,7 +66,7 @@ export default function FocusPage() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const noiseNodeRef = useRef<AudioNode | null>(null);
 
-  const loadFocusData = () => {
+  const loadFocusData = useCallback(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("tasktracker-focus-stats") || "null") as FocusStats | null;
       if (saved) setStats({ sessions: saved.sessions || 0, minutes: saved.minutes || 0, lastSession: saved.lastSession, sessionDates: saved.sessionDates || [] });
@@ -82,17 +82,19 @@ export default function FocusPage() {
         }
       })
       .catch(() => {});
-  };
+  }, []);
 
   // Load stats & tasks
   useEffect(() => {
-    loadFocusData();
+    // Initial focus state hydration is intentionally triggered here for the first render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadFocusData();
     const unsubscribe = subscribeToDataSync(() => {
-      loadFocusData();
+      void loadFocusData();
     });
     setHydrated(true);
     return () => unsubscribe();
-  }, []);
+  }, [loadFocusData]);
 
   // Sync timer to document tab title
   useEffect(() => {

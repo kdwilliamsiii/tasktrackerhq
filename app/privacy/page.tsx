@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AppShell } from "../components/app-shell";
-import { Shield, FileText, ArrowLeft, Lock, Eye, Database, Cpu, CheckCircle2 } from "lucide-react";
+import { Shield, FileText, ArrowLeft } from "lucide-react";
 
 export default function PrivacyPage() {
   return (

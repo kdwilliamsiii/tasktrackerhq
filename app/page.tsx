@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { AppShell, PrimaryButton } from "./components/app-shell";
@@ -32,9 +32,9 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [focusStreak, setFocusStreak] = useState(0);
   const [dateInfo, setDateInfo] = useState<{ dateLabel: string; greeting: string } | null>(null);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     // 1. Fetch Tasks
     try {
       const res = await fetch("/api/tasks", { cache: "no-store" });
@@ -78,7 +78,7 @@ export default function DashboardPage() {
     } catch {
       setEvents(!session ? DEMO_DASHBOARD_EVENTS : []);
     }
-  };
+  }, [session]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -92,6 +92,9 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    // Initial dashboard hydration is intentionally done here so we can populate from
+    // local storage and the API before the user interacts with the page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDashboardData();
 
     const unsubscribe = subscribeToDataSync(() => {
@@ -118,7 +121,7 @@ export default function DashboardPage() {
       unsubscribe();
       window.clearTimeout(focusLoad);
     };
-  }, []);
+  }, [loadDashboardData]);
 
   const completed = tasks.filter((task) => task.completed).length;
   const openTasks = tasks.filter((task) => !task.completed).slice(0, 5);

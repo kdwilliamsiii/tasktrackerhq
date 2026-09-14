@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell, StatusPill } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
-import { Search, Download, CheckSquare, Trash2, Filter, Sparkles, Lock } from "lucide-react";
+import { Search, Download, CheckSquare, Trash2, Sparkles } from "lucide-react";
 import { callAiAssistant } from "../../lib/ai";
 import { useAuthGate } from "../../components/AuthModalProvider";
 import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
@@ -65,6 +65,9 @@ export default function TasksPage() {
   }, [notify, isAuthenticated]);
 
   useEffect(() => {
+    // Initial task hydration is intentionally done here so the list reflects persisted
+    // data and live sync updates as soon as the page mounts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     const unsubscribe = subscribeToDataSync(() => {
       void load();
@@ -77,7 +80,9 @@ export default function TasksPage() {
     tasks.forEach(t => {
       if (t.category && t.category.trim()) set.add(t.category.trim());
     });
-    return Array.from(set);
+    const ordered = Array.from(set);
+    if (!ordered.includes("General")) ordered.unshift("General");
+    return ordered;
   }, [tasks]);
 
   function updateDraft(field: keyof TaskDraft, value: string) {
@@ -163,6 +168,10 @@ export default function TasksPage() {
 
   async function remove(id: string) {
     if (!requireAuth(() => {}, "Sign in with Google or Microsoft to delete tasks.")) return;
+    const task = tasks.find((item) => item.id === id);
+    if (!task) return;
+    if (!window.confirm('Delete "' + task.title + '"?')) return;
+
     const response = await fetch(`/api/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     if (response.ok) {
       setTasks((old) => old.filter((task) => task.id !== id));
@@ -307,10 +316,16 @@ export default function TasksPage() {
           <label className="task-field">
             Category
             <input
+              list="task-category-suggestions"
               value={draft.category}
               onChange={(event) => updateDraft("category", event.target.value)}
               placeholder="e.g. Work, Study"
             />
+            <datalist id="task-category-suggestions">
+              {categories.map((category) => (
+                <option key={category} value={category} />
+              ))}
+            </datalist>
           </label>
           <label className="task-field">
             Due date

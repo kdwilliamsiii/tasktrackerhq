@@ -1,26 +1,17 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AppShell } from "../../components/app-shell";
 import { useNotifications } from "../../../components/NotificationProvider";
 import {
-  ShieldAlert,
-  Cpu,
-  Zap,
-  TrendingUp,
-  AlertTriangle,
   RefreshCw,
-  Users,
-  DollarSign,
+  Search,
+  Trash2,
   ToggleLeft,
   ToggleRight,
-  Search,
-  Ban,
-  CheckCircle2,
-  Trash2,
-  Key,
+  AlertTriangle,
 } from "lucide-react";
 
 type GlobalToggles = {
@@ -91,7 +82,7 @@ export default function AdminAiUsageDashboard() {
   const userEmail = (session?.user?.email || "").toLowerCase();
   const isUserAdmin = session?.user?.role === "admin" || userEmail === "kdwilliamsiii@gmail.com" || userEmail === "kdwilliamsiii@tasktrackerhq.app";
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/ai-usage");
@@ -105,13 +96,32 @@ export default function AdminAiUsageDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [notify]);
 
   useEffect(() => {
     if (isUserAdmin) {
-      fetchData();
+      // Initial admin analytics hydration must run on mount for the dashboard to load.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void fetchData();
     }
-  }, [session, isUserAdmin]);
+  }, [fetchData, isUserAdmin]);
+
+  const filteredUsers = useMemo(() => {
+    if (!analytics) return [];
+    return analytics.userTable.filter((u) => {
+      if (filterAbuseOnly && !u.abuseFlag) return false;
+      if (filterTier !== "all" && u.tier !== filterTier) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          u.userId.toLowerCase().includes(q) ||
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [analytics, searchQuery, filterTier, filterAbuseOnly]);
 
   if (sessionStatus === "loading") {
     return (
@@ -203,23 +213,6 @@ export default function AdminAiUsageDashboard() {
       setUpdating(false);
     }
   };
-
-  const filteredUsers = useMemo(() => {
-    if (!analytics?.userTable) return [];
-    return analytics.userTable.filter((u) => {
-      if (filterAbuseOnly && !u.abuseFlag) return false;
-      if (filterTier !== "all" && u.tier !== filterTier) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        return (
-          u.userId.toLowerCase().includes(q) ||
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [analytics?.userTable, searchQuery, filterTier, filterAbuseOnly]);
 
   const fastTotal = analytics?.monthly.fastCount || 0;
   const advTotal = analytics?.monthly.advancedCount || 0;

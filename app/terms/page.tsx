@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AppShell } from "../components/app-shell";
-import { FileText, Shield, ArrowLeft, CheckCircle2, Lock, Cpu, Cloud, Globe } from "lucide-react";
+import { FileText, Shield, ArrowLeft } from "lucide-react";
 
 export default function TermsPage() {
   return (

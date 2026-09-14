@@ -611,6 +611,17 @@ body {
 .gpa-class-meta b {
   color: var(--foreground);
 }
+.gpa-class-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.gpa-class-actions .text-button {
+  white-space: nowrap;
+}
 
 @media (max-width: 760px) {
   .gpa-summary-hero {
@@ -630,6 +641,15 @@ body {
   .gpa-class-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .gpa-class-actions {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+    justify-content: flex-end;
   }
   .gpa-class-title-row {
     flex-direction: column;

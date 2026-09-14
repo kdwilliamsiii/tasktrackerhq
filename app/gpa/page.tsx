@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "../components/app-shell";
 import { useNotifications } from "../../components/NotificationProvider";
 import TTBotHint from "../../components/TTBotHint";
-import { Download, Calculator, Sparkles } from "lucide-react";
+import { Download, Calculator } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
 import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
 
@@ -67,10 +67,10 @@ export default function GpaPage() {
   const [draft, setDraft] = useState<ClassDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [targetLetter, setTargetLetter] = useState("A");
   const { notify } = useNotifications();
+  const targetLetter = "A";
 
-  const loadClasses = async () => {
+  const loadClasses = useCallback(async () => {
     try {
       const stored = localStorage.getItem("tasktracker-gpa-classes");
       const localList: CourseClass[] = stored ? JSON.parse(stored) : [];
@@ -103,15 +103,18 @@ export default function GpaPage() {
         setClasses(!isAuthenticated ? DEMO_CLASSES : []);
       }
     }
-  };
+  }, [isAuthenticated]);
 
   useEffect(() => {
+    // This mount-time sync intentionally loads saved and server GPA content before
+    // rendering the class list; the lint rule is overly strict for this async flow.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadClasses();
     const unsubscribe = subscribeToDataSync(() => {
       void loadClasses();
     });
     return () => unsubscribe();
-  }, []);
+  }, [loadClasses]);
 
   function saveClasses(next: CourseClass[]) {
     setClasses(next);
@@ -487,7 +490,7 @@ export default function GpaPage() {
                       </div>
                     )}
                   </div>
-                  <div className="task-row-actions">
+                  <div className="gpa-class-actions">
                     <button className="text-button" type="button" onClick={() => startEdit(item)}>
                       Edit
                     </button>

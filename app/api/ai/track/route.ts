@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
-import { recordAiUsage, listAiUsage, getAiUsageSummary, getMonthlyAiUsageForUser, getUserProfile } from "../../../../lib/db";
+import { recordAiUsage, listAiUsage, getMonthlyAiUsageForUser, getUserProfile } from "../../../../lib/db";
 import { getTierConfig, PRICING_TIERS } from "../../../../lib/ai-tiers";
 
 export async function POST(req: Request) {
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id;
