@@ -44,6 +44,7 @@ export type ThemePreset = {
 };
 
 export const themePresets: ThemePreset[] = [
+  { id: "paper", name: "Paper & Ink (Default)", colors: { background: "#fbfcff", foreground: "#1e293b", surface: "#fffef8", sidebar: "#64748b", sidebarText: "#ffffff", sidebarActive: "#0f9385", topbar: "#fffef8", topbarText: "#334155", muted: "#718096", navy: "#475569", teal: "#0f9385", orange: "#c66a09", line: "#d8e0e8" } },
   { id: "cobalt", name: "Cobalt Workbench", colors: { background: "#f3f7ff", foreground: "#172554", surface: "#ffffff", sidebar: "#2563eb", sidebarText: "#ffffff", sidebarActive: "#1d4ed8", topbar: "#e0ecff", topbarText: "#1e3a8a", muted: "#5b6f91", navy: "#1d4ed8", teal: "#06b6d4", orange: "#fb7c24", line: "#c4d9fa" } },
   { id: "evergreen", name: "Evergreen", colors: { background: "#f1fff6", foreground: "#153b2a", surface: "#ffffff", sidebar: "#16a05d", sidebarText: "#ffffff", topbar: "#d9fbe7", topbarText: "#166534", muted: "#5f806f", navy: "#15803d", teal: "#10b981", orange: "#e58a0b", line: "#bfe9cf" } },
   { id: "plum", name: "Plum Desk", colors: { background: "#fcf8ff", foreground: "#35145f", surface: "#ffffff", sidebar: "#9333ea", sidebarText: "#ffffff", topbar: "#f4e7ff", topbarText: "#6b21a8", muted: "#846c9b", navy: "#7e22ce", teal: "#c026d3", orange: "#fb536f", line: "#e3c9f7" } },
@@ -51,7 +52,6 @@ export const themePresets: ThemePreset[] = [
   { id: "monochrome", name: "Monochrome", colors: { background: "#fafafa", foreground: "#18181b", surface: "#ffffff", sidebar: "#52525b", sidebarText: "#ffffff", topbar: "#eeeeef", topbarText: "#27272a", muted: "#696970", navy: "#3f3f46", teal: "#71717a", orange: "#b4b4bc", line: "#d7d7dc" } },
   { id: "lagoon", name: "Lagoon", colors: { background: "#f0feff", foreground: "#164e63", surface: "#ffffff", sidebar: "#0891b2", sidebarText: "#ffffff", topbar: "#cffafe", topbarText: "#155e75", muted: "#56808d", navy: "#0e7490", teal: "#06b6d4", orange: "#f7a51b", line: "#b9e8ef" } },
   { id: "berry", name: "Berry Cream", colors: { background: "#fff5f6", foreground: "#4a1022", surface: "#ffffff", sidebar: "#be185d", sidebarText: "#ffffff", topbar: "#ffe4e8", topbarText: "#9f1239", muted: "#9d6377", navy: "#be185d", teal: "#e11d8a", orange: "#f07032", line: "#f1c2ce" } },
-  { id: "paper", name: "Paper & Ink", colors: { background: "#fbfcff", foreground: "#1e293b", surface: "#fffef8", sidebar: "#64748b", sidebarText: "#ffffff", topbar: "#fffef8", topbarText: "#334155", muted: "#718096", navy: "#475569", teal: "#0f9385", orange: "#c66a09", line: "#d8e0e8" } },
 ];
 
 type ThemeContextValue = {

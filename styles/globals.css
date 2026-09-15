@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root { --background: #f6f8fb; --foreground: #182230; --surface: #ffffff; --sidebar: #ffffff; --sidebarText: #17283d; --sidebarActive: #e9f7f4; --topbar: #ffffff; --topbarText: #344258; --ink-muted: #748094; --muted: #748094; --line: #e5e9f0; --navy: #17283d; --teal: #36b7a2; --orange: #e9825b; --font-app: "Inter", sans-serif; --font-sidebar: "Inter", sans-serif; --font-topbar: "Inter", sans-serif; --radius: 9px; }
+:root { --background: #fbfcff; --foreground: #1e293b; --surface: #fffef8; --sidebar: #64748b; --sidebarText: #ffffff; --sidebarActive: #0f9385; --topbar: #fffef8; --topbarText: #334155; --ink-muted: #718096; --muted: #718096; --line: #d8e0e8; --navy: #475569; --teal: #0f9385; --orange: #c66a09; --font-app: "Inter", sans-serif; --font-sidebar: "Inter", sans-serif; --font-topbar: "Inter", sans-serif; --radius: 9px; }
 
 @theme inline {
   --color-background: var(--background);

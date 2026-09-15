@@ -45,11 +45,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     if (res.ok) {
       chrome.action.setBadgeText({ text: "OK" });
-      chrome.action.setBadgeBackgroundColor({ color: "#36b7a2" });
+      chrome.action.setBadgeBackgroundColor({ color: "#0f9385" });
       setTimeout(() => chrome.action.setBadgeText({ text: "" }), 2500);
     } else {
       chrome.action.setBadgeText({ text: "!" });
-      chrome.action.setBadgeBackgroundColor({ color: "#e9825b" });
+      chrome.action.setBadgeBackgroundColor({ color: "#c66a09" });
       setTimeout(() => chrome.action.setBadgeText({ text: "" }), 2500);
     }
   } catch (err) {

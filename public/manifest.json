@@ -4,8 +4,8 @@
   "description": "Tasks, calendars, and focus in one productivity workspace.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f8fb",
-  "theme_color": "#17283d",
+  "background_color": "#fbfcff",
+  "theme_color": "#475569",
   "orientation": "portrait-primary",
   "icons": [
     {
