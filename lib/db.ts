@@ -565,4 +565,107 @@ export async function getMonthlyAiUsageForUser(userId: string) {
   };
 }
 
+// -------------------------------------------------------------
+// HQ Rewards System (XP, Badges, Streaks, Levels)
+// -------------------------------------------------------------
+import {
+  type RewardsProfile,
+  defaultRewardsProfile,
+  getLevelProgress,
+  evaluateBadges,
+  calculateStreak,
+  XP_VALUES,
+} from "./rewards";
+
+const rewardsCollection = () => db.collection<{ userId: string } & RewardsProfile>("rewards");
+
+export async function getUserRewards(userId: string): Promise<RewardsProfile> {
+  const record = await rewardsCollection().findOne({ userId }, { projection: { _id: 0, userId: 0 } });
+  if (record) return record as RewardsProfile;
+  return defaultRewardsProfile;
+}
+
+export async function awardUserXp(
+  userId: string,
+  event: {
+    type: "task_completed" | "focus_session" | "ai_action" | "daily_checkin" | "custom";
+    customXp?: number;
+    description: string;
+    focusMinutes?: number;
+  }
+): Promise<{ profile: RewardsProfile; xpEarned: number; newBadges: string[]; levelUp: boolean }> {
+  const current = await getUserRewards(userId);
+
+  let xpEarned = event.customXp || 0;
+  let taskInc = 0;
+  let focusInc = 0;
+  let focusMinsInc = event.focusMinutes || 0;
+  let aiInc = 0;
+
+  if (event.type === "task_completed") {
+    xpEarned = XP_VALUES.TASK_COMPLETED;
+    taskInc = 1;
+  } else if (event.type === "focus_session") {
+    xpEarned = (event.focusMinutes && event.focusMinutes >= 50) ? XP_VALUES.FOCUS_SESSION_50MIN : XP_VALUES.FOCUS_SESSION_25MIN;
+    focusInc = 1;
+  } else if (event.type === "ai_action") {
+    xpEarned = XP_VALUES.AI_ACTION;
+    aiInc = 1;
+  } else if (event.type === "daily_checkin") {
+    xpEarned = XP_VALUES.DAILY_CHECKIN;
+  }
+
+  // Calculate streak update
+  const streakCalc = calculateStreak(current.lastActiveDate, current.currentStreak, current.bestStreak);
+  if (streakCalc.isNewDay) {
+    // Add streak bonus
+    xpEarned += Math.min(50, streakCalc.newStreak * XP_VALUES.STREAK_BONUS_PER_DAY);
+  }
+
+  const newTotalXp = current.xp + xpEarned;
+  const progress = getLevelProgress(newTotalXp);
+  const oldProgress = getLevelProgress(current.xp);
+  const levelUp = progress.level > oldProgress.level;
+
+  const candidateProfile: RewardsProfile = {
+    ...current,
+    xp: newTotalXp,
+    level: progress.level,
+    tier: progress.tier,
+    currentStreak: streakCalc.newStreak,
+    bestStreak: streakCalc.newBestStreak,
+    lastActiveDate: streakCalc.todayIso,
+    tasksCompleted: current.tasksCompleted + taskInc,
+    focusSessionsCompleted: current.focusSessionsCompleted + focusInc,
+    focusMinutes: current.focusMinutes + focusMinsInc,
+    aiActionsUsed: current.aiActionsUsed + aiInc,
+    history: [
+      {
+        id: crypto.randomUUID(),
+        action: event.description,
+        xp: xpEarned,
+        timestamp: new Date().toISOString(),
+      },
+      ...(current.history || []).slice(0, 49),
+    ],
+  };
+
+  const badgeEvaluation = evaluateBadges(candidateProfile);
+  candidateProfile.unlockedBadges = badgeEvaluation.unlockedBadges;
+
+  await rewardsCollection().updateOne(
+    { userId },
+    { $set: { userId, ...candidateProfile } },
+    { upsert: true }
+  );
+
+  return {
+    profile: candidateProfile,
+    xpEarned,
+    newBadges: badgeEvaluation.newBadges,
+    levelUp,
+  };
+}
+
+
 

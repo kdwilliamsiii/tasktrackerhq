@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { addTask, listTasks, updateTask, deleteTask } from "../../../lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../auth/[...nextauth]/route";
+import { addTask, listTasks, updateTask, deleteTask, awardUserXp } from "../../../lib/db";
 
 function getCorsHeaders(request: Request) {
   const origin = request.headers.get("origin") || "*";
@@ -51,6 +53,18 @@ export async function PATCH(request: Request) {
   if (typeof body.dueDate === "string" && (!body.dueDate || /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate))) input.dueDate = body.dueDate;
   if (!Object.keys(input).length) return json(request, { error: "No valid task changes" }, { status: 400 });
   const task = await updateTask(body.id, input);
+  if (task && body.completed === true) {
+    try {
+      const session = await getServerSession(authOptions);
+      const userId = session?.user?.id || "anonymous";
+      void awardUserXp(userId, {
+        type: "task_completed",
+        description: `Completed task: "${task.title.slice(0, 40)}"`,
+      });
+    } catch {
+      // Non-blocking rewards
+    }
+  }
   return task ? json(request, { task }) : json(request, { error: "Task not found" }, { status: 404 });
 }
 

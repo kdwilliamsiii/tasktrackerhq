@@ -63,6 +63,17 @@ export async function runGeminiNano(prompt: string, feature: string = "fast"): P
         tokensOut: 0,
         costUsd: 0,
       });
+
+      // Award XP for on-device AI actions
+      void fetch("/api/rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "ai_action",
+          description: `On-Device Fast AI: ${feature}`,
+        }),
+      }).catch(() => {});
+
       return result;
     } finally {
       if (session.destroy) session.destroy();

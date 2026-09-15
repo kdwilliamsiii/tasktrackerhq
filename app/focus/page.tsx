@@ -179,6 +179,18 @@ export default function FocusPage() {
 
         if (mode === "pomodoro") {
           notify("Session complete! Great work. Take a 5-minute break.", "success");
+          
+          // Award Focus Session XP
+          void fetch("/api/rewards", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "focus_session",
+              description: `Completed ${duration}m Focus session`,
+              focusMinutes: duration,
+            }),
+          }).catch(() => {});
+
           setStats((currentStats) => {
             const completedAt = new Date().toISOString();
             const next = {

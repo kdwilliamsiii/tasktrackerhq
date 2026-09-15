@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
-import { recordAiUsage } from "../../../../lib/db";
+import { recordAiUsage, awardUserXp } from "../../../../lib/db";
 import { checkAiRateLimit, rateLimitResponse } from "../../../../lib/ai-limit-middleware";
 
 export async function POST(req: Request) {
@@ -35,6 +35,14 @@ export async function POST(req: Request) {
         tokensOut: 0,
         costUsd: 0,
       });
+      try {
+        void awardUserXp(userId, {
+          type: "ai_action",
+          description: `Fast AI: ${feature || "task assistance"}`,
+        });
+      } catch {
+        // Non-blocking
+      }
       return NextResponse.json({ reply, monthlyStats: limitCheck.monthlyStats });
     }
 
@@ -77,6 +85,15 @@ export async function POST(req: Request) {
       tokensIn,
       tokensOut,
     });
+
+    try {
+      void awardUserXp(userId, {
+        type: "ai_action",
+        description: `Fast AI: ${feature || "task assistance"}`,
+      });
+    } catch {
+      // Non-blocking
+    }
 
     return NextResponse.json({ reply, tokensIn, tokensOut });
   } catch (error) {

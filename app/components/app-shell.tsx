@@ -21,6 +21,7 @@ import {
   Cpu,
   Lock,
   LogIn,
+  Trophy,
 } from "lucide-react";
 import SearchBar from "../../components/SearchBar";
 import { useNotifications } from "../../components/NotificationProvider";
@@ -33,6 +34,7 @@ const navigation = [
   { href: "/focus", label: "Focus", icon: Timer },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/gpa", label: "GPA Tracker", icon: GraduationCap },
+  { href: "/rewards", label: "HQ Rewards", icon: Trophy },
   { href: "/profile", label: "Profile", icon: User },
 ];
 

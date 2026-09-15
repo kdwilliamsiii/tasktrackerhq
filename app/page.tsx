@@ -9,7 +9,7 @@ import TaskProgressWidget from "../components/TaskProgressWidget";
 import DailyOverviewWidget from "../components/DailyOverviewWidget";
 import DashboardCard from "../components/DashboardCard";
 import TTBotHint from "../components/TTBotHint";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Trophy, Flame } from "lucide-react";
 import { subscribeToDataSync } from "../lib/sync";
 
 type Task = { id: string; title: string; completed: boolean; priority: string; completedAt?: string };
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [focusStreak, setFocusStreak] = useState(0);
+  const [rewardsInfo, setRewardsInfo] = useState<{ xp: number; level: number; streak: number; tier: string } | null>(null);
   const [dateInfo, setDateInfo] = useState<{ dateLabel: string; greeting: string } | null>(null);
   const { data: session } = useSession();
 
@@ -47,6 +48,24 @@ export default function DashboardPage() {
       }
     } catch {
       setTasks(!session ? DEMO_DASHBOARD_TASKS : []);
+    }
+
+    // 1b. Fetch HQ Rewards summary
+    try {
+      const rewRes = await fetch("/api/rewards", { cache: "no-store" });
+      if (rewRes.ok) {
+        const rewData = await rewRes.json();
+        if (rewData.rewards) {
+          setRewardsInfo({
+            xp: rewData.rewards.xp || 0,
+            level: rewData.rewards.level || 1,
+            streak: rewData.rewards.currentStreak || 0,
+            tier: rewData.rewards.tier || "Beginner",
+          });
+        }
+      }
+    } catch {
+      // Ignore
     }
 
     // 2. Fetch Events (Database + localStorage merge)
@@ -147,8 +166,13 @@ export default function DashboardPage() {
       <div className="dashboard-stats">
         <DashboardCard label="Open tasks" value={tasks.length - completed} detail="Needs attention" />
         <DashboardCard label="Completed" value={completed} detail={(tasks.length ? Math.round((completed / tasks.length) * 100) : 0) + "% completion rate"} />
+        <DashboardCard
+          label="HQ Rewards"
+          value={`Lvl ${rewardsInfo?.level || 1} • ${rewardsInfo?.xp || 0} XP`}
+          detail={`${rewardsInfo?.tier || "Beginner"} (${rewardsInfo?.streak || focusStreak}d streak)`}
+          accent
+        />
         <DashboardCard label="Upcoming events" value={events.length} detail="On your calendar" />
-        <DashboardCard label="Focus streak" value={focusStreak + " " + (focusStreak === 1 ? "day" : "days")} detail={focusStreak ? "Keep the momentum going" : "Start today"} accent />
       </div>
       <div className="dashboard-grid dashboard-content-grid">
         <section className="dashboard-panel">
