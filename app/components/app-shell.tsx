@@ -127,7 +127,7 @@ export function AppShell({ children, active, eyebrow, title, description, action
       {/* Mobile Pull To Refresh Banner */}
       {pullDistance > 0 && (
         <div className="pull-refresh-indicator" style={{ height: pullDistance + "px" }}>
-          <span>{pullDistance >= 60 ? "Release to refresh ?" : "Pull down to refresh..."}</span>
+          <span>{pullDistance >= 60 ? "Release to refresh ⟳" : "Pull down to refresh..."}</span>
         </div>
       )}
 

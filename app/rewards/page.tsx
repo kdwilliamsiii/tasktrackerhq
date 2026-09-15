@@ -8,15 +8,10 @@ import {
   Trophy,
   Flame,
   Zap,
-  Target,
-  Brain,
   Timer,
   CheckCircle2,
   Award,
   Sparkles,
-  TrendingUp,
-  ShieldCheck,
-  Star,
   Lock,
 } from "lucide-react";
 import type { RewardsProfile, Badge } from "../../lib/rewards";
