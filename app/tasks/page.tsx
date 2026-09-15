@@ -13,6 +13,17 @@ type Priority = "Low" | "Medium" | "High";
 type Task = { id: string; title: string; completed: boolean; priority: Priority; category?: string; dueDate?: string };
 type TaskDraft = { title: string; priority: Priority; category: string; dueDate: string };
 
+const DEFAULT_CATEGORIES = [
+  "General",
+  "Academics",
+  "Work",
+  "Personal",
+  "Study",
+  "Homework",
+  "Project",
+  "Errands",
+];
+
 const emptyDraft: TaskDraft = { title: "", priority: "Medium", category: "General", dueDate: "" };
 
 function formatDueDate(date?: string) {
@@ -32,6 +43,8 @@ export default function TasksPage() {
   const [error, setError] = useState("");
   const [sort, setSort] = useState("updated");
   const [polishing, setPolishing] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
   const { notify } = useNotifications();
   const { requireAuth, isAuthenticated } = useAuthGate();
 
@@ -76,29 +89,51 @@ export default function TasksPage() {
   }, [load]);
 
   const categories = useMemo(() => {
-    const set = new Set<string>();
+    const set = new Set<string>(DEFAULT_CATEGORIES);
     tasks.forEach(t => {
       if (t.category && t.category.trim()) set.add(t.category.trim());
     });
-    const ordered = Array.from(set);
-    if (!ordered.includes("General")) ordered.unshift("General");
-    return ordered;
-  }, [tasks]);
+    if (draft.category && draft.category.trim()) {
+      set.add(draft.category.trim());
+    }
+    return Array.from(set);
+  }, [tasks, draft.category]);
 
   function updateDraft(field: keyof TaskDraft, value: string) {
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
+  function handleCategorySelect(selected: string) {
+    if (selected === "__custom__") {
+      setIsCustomCategory(true);
+      setCustomCategoryInput("");
+    } else {
+      setIsCustomCategory(false);
+      setCustomCategoryInput("");
+      updateDraft("category", selected);
+    }
+  }
+
+  function handleCustomCategoryChange(val: string) {
+    setCustomCategoryInput(val);
+    updateDraft("category", val);
+  }
+
   function startEdit(task: Task) {
     if (!requireAuth(() => {}, "Sign in with Google or Microsoft to edit tasks.")) return;
     setEditingId(task.id);
-    setDraft({ title: task.title, priority: task.priority, category: task.category || "General", dueDate: task.dueDate || "" });
+    const cat = task.category || "General";
+    setDraft({ title: task.title, priority: task.priority, category: cat, dueDate: task.dueDate || "" });
+    setIsCustomCategory(false);
+    setCustomCategoryInput("");
     setError("");
   }
 
   function resetDraft() {
     setEditingId(null);
     setDraft(emptyDraft);
+    setIsCustomCategory(false);
+    setCustomCategoryInput("");
   }
 
   async function polishTaskTitle() {
@@ -315,17 +350,42 @@ export default function TasksPage() {
           </label>
           <label className="task-field">
             Category
-            <input
-              list="task-category-suggestions"
-              value={draft.category}
-              onChange={(event) => updateDraft("category", event.target.value)}
-              placeholder="e.g. Work, Study"
-            />
-            <datalist id="task-category-suggestions">
-              {categories.map((category) => (
-                <option key={category} value={category} />
-              ))}
-            </datalist>
+            {isCustomCategory ? (
+              <div style={{ display: "flex", gap: 4, marginTop: 7 }}>
+                <input
+                  type="text"
+                  value={customCategoryInput}
+                  onChange={(e) => handleCustomCategoryChange(e.target.value)}
+                  placeholder="New category name"
+                  autoFocus
+                  style={{ margin: 0 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomCategory(false);
+                    updateDraft("category", "General");
+                  }}
+                  className="task-action-btn"
+                  style={{ padding: "0 8px", fontSize: 11 }}
+                  title="Choose from list"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <select
+                value={draft.category}
+                onChange={(event) => handleCategorySelect(event.target.value)}
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+                <option value="__custom__">+ Add Custom Category...</option>
+              </select>
+            )}
           </label>
           <label className="task-field">
             Due date
