@@ -7,6 +7,7 @@ import {
   updateCalendarEventDb,
   deleteCalendarEventDb,
 } from "../../../lib/db";
+import { getOccurrenceDates, type RepeatFrequency } from "../../../lib/calendar";
 
 function getCorsHeaders(request: Request) {
   const origin = request.headers.get("origin") || "*";
@@ -49,17 +50,37 @@ export async function POST(request: Request) {
     return json(request, { ok: true, ignored: "Provider events stored via provider sync" });
   }
 
-  const event = await addCalendarEvent({
+  const date = typeof body.date === "string" && body.date
+    ? body.date.slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+  const repeat: RepeatFrequency = ["none", "daily", "weekly", "monthly"].includes(body.repeat)
+    ? body.repeat
+    : "none";
+  const repeatUntil = typeof body.repeatUntil === "string" ? body.repeatUntil.slice(0, 10) : undefined;
+  if (repeat !== "none" && !repeatUntil) {
+    return json(request, { error: "A repeat end date is required" }, { status: 400 });
+  }
+  const dates = getOccurrenceDates(date, repeat, repeatUntil);
+  if (!dates.length) {
+    return json(request, { error: "Repeat until must be on or after the event date" }, { status: 400 });
+  }
+
+  const sourceTime = body.time ? new Date(body.time) : null;
+  const timeForOccurrence = (occurrenceDate: string) => {
+    if (!sourceTime || Number.isNaN(sourceTime.getTime())) return "";
+    return `${occurrenceDate}T${sourceTime.toISOString().slice(11, 19)}.000Z`;
+  };
+  const events = await Promise.all(dates.map((occurrenceDate, index) => addCalendarEvent({
     userId,
     title: body.title.trim(),
-    date: body.date || new Date().toISOString().slice(0, 10),
-    time: body.time || "",
+    date: occurrenceDate,
+    time: timeForOccurrence(occurrenceDate),
     provider: "Local",
-    id: body.id,
+    id: index === 0 && typeof body.id === "string" ? body.id : undefined,
     reminderMinutes: Number(body.reminderMinutes) || 30,
-  });
+  })));
 
-  return json(request, { event }, { status: 201 });
+  return json(request, { event: events[0], events }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {

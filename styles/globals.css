@@ -1645,6 +1645,19 @@ html, body, .app-frame, .main-content {
   width: 100%;
 }
 
+.event-repeat-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.event-repeat-field span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .add-event-btn {
   align-self: flex-start;
   padding: 10px 20px;
@@ -2388,5 +2401,4 @@ html, body, .app-frame, .main-content {
     justify-content: center;
   }
 }
-
 

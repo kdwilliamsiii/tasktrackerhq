@@ -8,10 +8,18 @@ import TTBotHint from "../../components/TTBotHint";
 import { CalendarDays, PlusCircle, Share2, RotateCw, CheckCircle2 } from "lucide-react";
 import { useAuthGate } from "../../components/AuthModalProvider";
 import { broadcastDataChanged, subscribeToDataSync } from "../../lib/sync";
+import { getOccurrenceDates, type RepeatFrequency } from "../../lib/calendar";
 
 type EventItem = CalendarListEvent;
-type EventDraft = { title: string; date: string; time: string; reminderMinutes: string };
-const emptyDraft = { title: "", date: new Date().toISOString().slice(0, 10), time: "", reminderMinutes: "30" };
+type EventDraft = { title: string; date: string; time: string; reminderMinutes: string; repeat: RepeatFrequency; repeatUntil: string };
+const emptyDraft: EventDraft = {
+  title: "",
+  date: new Date().toISOString().slice(0, 10),
+  time: "",
+  reminderMinutes: "30",
+  repeat: "none",
+  repeatUntil: "",
+};
 
 function localDateTimeValue(value?: string) {
   if (!value) return "";
@@ -152,6 +160,15 @@ export default function CalendarPage() {
       return;
     }
     if (!draft.title.trim()) return;
+    if (draft.repeat !== "none" && !draft.repeatUntil) {
+      notify("Choose an end date for the repeated event.", "warning");
+      return;
+    }
+    const occurrenceDates = getOccurrenceDates(draft.date, draft.repeat, draft.repeatUntil);
+    if (!occurrenceDates.length) {
+      notify("The repeat end date must be on or after the event date.", "warning");
+      return;
+    }
     const target = events.find((item) => item.id === editingId);
     let time: string | undefined = undefined;
     if (draft.time) {
@@ -192,13 +209,22 @@ export default function CalendarPage() {
       reminderMinutes: Number(draft.reminderMinutes),
     };
 
+    let savedEvents = [updated];
     if (updated.provider === "Local") {
       try {
-        await fetch("/api/events", {
+        const response = await fetch("/api/events", {
           method: editingId ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updated),
+          body: JSON.stringify({
+            ...updated,
+            repeat: editingId ? "none" : draft.repeat,
+            repeatUntil: editingId ? undefined : draft.repeatUntil,
+          }),
         });
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data.events)) savedEvents = data.events;
+        }
       } catch {
         // Offline fallback
       }
@@ -206,7 +232,7 @@ export default function CalendarPage() {
 
     const next = editingId
       ? events.map((event) => (event.id === editingId ? { ...event, ...updated } : event))
-      : [...events, updated];
+      : [...events, ...savedEvents];
 
     setEvents(next);
     localStorage.setItem("tasktracker-events", JSON.stringify(next));
@@ -233,6 +259,8 @@ export default function CalendarPage() {
       date: event.date.slice(0, 10),
       time: localDateTimeValue(event.time),
       reminderMinutes: String(event.reminderMinutes ?? 30),
+      repeat: "none",
+      repeatUntil: "",
     });
   }
 
@@ -304,6 +332,8 @@ export default function CalendarPage() {
         date: event.date.slice(0, 10),
         time: localDateTimeValue(event.time),
         reminderMinutes: String(event.reminderMinutes ?? 30),
+        repeat: "none",
+        repeatUntil: "",
       });
     }
   }
@@ -609,6 +639,36 @@ export default function CalendarPage() {
                   <option value="60">1 hour before</option>
                 </select>
               </div>
+              {!editingId && (
+                <div className="event-form-row">
+                  <label className="event-repeat-field">
+                    <span>Repeat</span>
+                    <select
+                      value={draft.repeat}
+                      onChange={(e) => updateDraft("repeat", e.target.value as RepeatFrequency)}
+                      aria-label="Repeat event"
+                    >
+                      <option value="none">Does not repeat</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </label>
+                  {draft.repeat !== "none" && (
+                    <label className="event-repeat-field">
+                      <span>Repeat until</span>
+                      <input
+                        required
+                        type="date"
+                        value={draft.repeatUntil}
+                        min={draft.date}
+                        onChange={(e) => updateDraft("repeatUntil", e.target.value)}
+                        aria-label="Repeat until"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
               <button className="primary-button add-event-btn" type="submit">
                 {editingId ? "Save changes" : "Add event"}
               </button>

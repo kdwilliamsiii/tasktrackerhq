@@ -326,6 +326,8 @@ export type CalendarEvent = {
   provider?: string;
   location?: string;
   reminderMinutes?: number;
+  repeat?: "none" | "daily" | "weekly" | "monthly";
+  repeatUntil?: string;
 };
 
 const eventsCollection = () => db.collection<CalendarEvent>("events");
@@ -666,6 +668,5 @@ export async function awardUserXp(
     levelUp,
   };
 }
-
 
 
