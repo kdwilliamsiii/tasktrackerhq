@@ -187,13 +187,20 @@ export default function GpaPage() {
     };
 
     try {
-      await fetch("/api/gpa", {
-        method: "POST",
+      const response = await fetch("/api/gpa", {
+        method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newItem),
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Unable to save class.");
+      }
     } catch {
-      // Offline fallback
+      if (isAuthenticated) {
+        setError("Unable to save this class right now. Please try again.");
+        return;
+      }
     }
 
     const next = editingId
@@ -214,11 +221,18 @@ export default function GpaPage() {
     if (!window.confirm('Delete "' + target.name + '"?')) return;
 
     try {
-      await fetch("/api/gpa?id=" + encodeURIComponent(id), {
+      const response = await fetch("/api/gpa?id=" + encodeURIComponent(id), {
         method: "DELETE",
       });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Unable to delete class.");
+      }
     } catch {
-      // Offline fallback
+      if (isAuthenticated) {
+        setError("Unable to delete this class right now. Please try again.");
+        return;
+      }
     }
 
     const next = classes.filter((c) => c.id !== id);
@@ -509,4 +523,3 @@ export default function GpaPage() {
     </AppShell>
   );
 }
-

@@ -53,9 +53,14 @@ export async function POST(request: Request) {
     pointsEarned: Number(body.pointsEarned) || 0,
     currentPossible: Number(body.currentPossible) || 100,
     totalPossible: Number(body.totalPossible) || 100,
+    isHonors: Boolean(body.isHonors),
   });
 
   return json(request, { class: item }, { status: 201 });
+}
+
+export async function PATCH(request: Request) {
+  return POST(request);
 }
 
 export async function DELETE(request: Request) {

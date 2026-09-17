@@ -378,6 +378,7 @@ export type GpaClass = {
   pointsEarned: number;
   currentPossible: number;
   totalPossible: number;
+  isHonors?: boolean;
 };
 
 const gpaClassesCollection = () => db.collection<GpaClass>("gpa_classes");
@@ -668,5 +669,4 @@ export async function awardUserXp(
     levelUp,
   };
 }
-
 
