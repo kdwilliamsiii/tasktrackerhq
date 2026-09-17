@@ -129,7 +129,7 @@ export default function GpaPage() {
   }
 
   function startEdit(item: CourseClass) {
-    if (!requireAuth(() => startEdit(item), "Sign in to edit course grades.")) {
+    if (!requireAuth(() => {}, "Sign in to edit course grades.")) {
       return;
     }
     setEditingId(item.id);
@@ -213,7 +213,7 @@ export default function GpaPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!requireAuth(() => handleDelete(id), "Sign in to delete courses.")) {
+    if (!requireAuth(() => {}, "Sign in to delete courses.")) {
       return;
     }
     const target = classes.find((c) => c.id === id);
@@ -242,7 +242,7 @@ export default function GpaPage() {
   }
 
   function exportGpaCsv() {
-    if (!requireAuth(exportGpaCsv, "Sign in to export your GPA transcripts and reports.")) {
+    if (!requireAuth(() => {}, "Sign in to export your GPA transcripts and reports.")) {
       return;
     }
     if (!classes.length) return;
