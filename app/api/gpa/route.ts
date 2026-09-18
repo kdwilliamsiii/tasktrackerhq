@@ -43,6 +43,9 @@ export async function POST(request: Request) {
 
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to save classes." }, { status: 401 });
+  }
 
   const item = await saveGpaClassDb({
     id: body.id,
@@ -69,7 +72,13 @@ export async function DELETE(request: Request) {
   const id = typeof body?.id === "string" ? body.id : url.searchParams.get("id");
   if (!id) return json(request, { error: "A class id is required" }, { status: 400 });
 
-  return (await deleteGpaClassDb(id))
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to delete classes." }, { status: 401 });
+  }
+
+  return (await deleteGpaClassDb(id, userId))
     ? json(request, { ok: true })
     : json(request, { error: "Class not found" }, { status: 404 });
 }

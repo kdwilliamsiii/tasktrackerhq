@@ -45,6 +45,9 @@ export async function POST(request: Request) {
 
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to create events." }, { status: 401 });
+  }
 
   if (body.provider && body.provider !== "Local") {
     return json(request, { ok: true, ignored: "Provider events stored via provider sync" });
@@ -89,6 +92,12 @@ export async function PATCH(request: Request) {
     return json(request, { error: "An event id is required" }, { status: 400 });
   }
 
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to update events." }, { status: 401 });
+  }
+
   const input: Record<string, unknown> = {};
   if (typeof body.title === "string" && body.title.trim()) input.title = body.title.trim();
   if (typeof body.date === "string") input.date = body.date;
@@ -99,7 +108,7 @@ export async function PATCH(request: Request) {
     return json(request, { error: "No valid event changes" }, { status: 400 });
   }
 
-  const event = await updateCalendarEventDb(body.id, input);
+  const event = await updateCalendarEventDb(body.id, userId, input);
   return event ? json(request, { event }) : json(request, { error: "Event not found" }, { status: 404 });
 }
 
@@ -109,7 +118,13 @@ export async function DELETE(request: Request) {
   const id = typeof body?.id === "string" ? body.id : url.searchParams.get("id");
   if (!id) return json(request, { error: "An event id is required" }, { status: 400 });
 
-  return (await deleteCalendarEventDb(id))
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to delete events." }, { status: 401 });
+  }
+
+  return (await deleteCalendarEventDb(id, userId))
     ? json(request, { ok: true })
     : json(request, { error: "Event not found" }, { status: 404 });
 }

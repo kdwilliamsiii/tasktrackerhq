@@ -114,6 +114,9 @@ export async function POST(request: Request) {
   }
 
   if (normalized.startsWith("add event") || normalized.startsWith("add calendar event") || normalized.startsWith("schedule event")) {
+    if (!userId) {
+      return jsonResponse(request, { reply: "Sign in with Google or Microsoft first, and I can add events for you.", action: "sign-in-required" });
+    }
     const details = message.replace(/^(add\s+event|add\s+calendar\s+event|schedule\s+event)\s*:?\s*/i, "").trim();
     if (!details) return jsonResponse(request, { reply: "Sure — what event would you like to schedule? (e.g. 'Team Sync')", action: "open-calendar" });
 

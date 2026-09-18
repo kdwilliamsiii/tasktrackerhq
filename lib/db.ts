@@ -345,9 +345,11 @@ export async function listCalendarEvents(userId?: string) {
     // Ignore
   }
 
-  const userFilter = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
+  // Unauthenticated requests never see anyone's events.
+  if (!userId) return [];
+
   const providerFilter = { $or: [{ provider: "Local" }, { provider: { $exists: false } }] };
-  const query = { $and: [userFilter, providerFilter] };
+  const query = { $and: [{ userId }, providerFilter] };
 
   return eventsCollection().find(query, { projection: { _id: 0 } }).sort({ date: 1 }).toArray();
 }
@@ -364,14 +366,14 @@ export async function addCalendarEventNew(input: Omit<CalendarEvent, "id">) {
   return event;
 }
 
-export async function updateCalendarEventDb(id: string, changes: Partial<Omit<CalendarEvent, "id">>) {
+export async function updateCalendarEventDb(id: string, userId: string, changes: Partial<Omit<CalendarEvent, "id" | "userId">>) {
   const update: UpdateFilter<CalendarEvent> = { $set: changes };
-  const result = await eventsCollection().findOneAndUpdate({ id }, update, { returnDocument: "after", projection: { _id: 0 } });
+  const result = await eventsCollection().findOneAndUpdate({ id, userId }, update, { returnDocument: "after", projection: { _id: 0 } });
   return result;
 }
 
-export async function deleteCalendarEventDb(id: string) {
-  const result = await eventsCollection().deleteOne({ id });
+export async function deleteCalendarEventDb(id: string, userId: string) {
+  const result = await eventsCollection().deleteOne({ id, userId });
   return result.deletedCount > 0;
 }
 
@@ -390,18 +392,21 @@ export type GpaClass = {
 const gpaClassesCollection = () => db.collection<GpaClass>("gpa_classes");
 
 export async function listGpaClasses(userId?: string) {
-  const query = userId ? { $or: [{ userId }, { userId: { $exists: false } }] } : {};
-  return gpaClassesCollection().find(query, { projection: { _id: 0 } }).toArray();
+  // Unauthenticated requests never see anyone's classes.
+  if (!userId) return [];
+  return gpaClassesCollection().find({ userId }, { projection: { _id: 0 } }).toArray();
 }
 
 export async function saveGpaClassDb(input: GpaClass) {
   const item = { ...input, id: input.id || crypto.randomUUID() };
-  await gpaClassesCollection().updateOne({ id: item.id }, { $set: item }, { upsert: true });
+  // Scope the upsert to (id, userId) so a caller can never overwrite another
+  // user's class by supplying its id.
+  await gpaClassesCollection().updateOne({ id: item.id, userId: item.userId }, { $set: item }, { upsert: true });
   return item;
 }
 
-export async function deleteGpaClassDb(id: string) {
-  const result = await gpaClassesCollection().deleteOne({ id });
+export async function deleteGpaClassDb(id: string, userId: string) {
+  const result = await gpaClassesCollection().deleteOne({ id, userId });
   return result.deletedCount > 0;
 }
 
