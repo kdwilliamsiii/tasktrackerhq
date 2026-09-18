@@ -25,10 +25,17 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function GET(request: Request) {
-  return json(request, { tasks: await listTasks() });
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  return json(request, { tasks: await listTasks(userId) });
 }
 
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to create tasks." }, { status: 401 });
+  }
   const body = await request.json().catch(() => null);
   if (!body || typeof body.title !== "string" || !body.title.trim()) {
     return json(request, { error: "A task title is required" }, { status: 400 });
@@ -36,10 +43,15 @@ export async function POST(request: Request) {
   const priority = body.priority === "High" || body.priority === "Low" ? body.priority : "Medium";
   const category = typeof body.category === "string" ? body.category.trim().slice(0, 40) : "Web Capture";
   const dueDate = typeof body.dueDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate) ? body.dueDate : "";
-  return json(request, { task: await addTask({ title: body.title.trim(), completed: false, priority, category, dueDate }) }, { status: 201 });
+  return json(request, { task: await addTask({ userId, title: body.title.trim(), completed: false, priority, category, dueDate }) }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to update tasks." }, { status: 401 });
+  }
   const body = await request.json().catch(() => null);
   if (!body?.id || typeof body.id !== "string") return json(request, { error: "A task id is required" }, { status: 400 });
   const input: Record<string, unknown> = {};
@@ -52,11 +64,9 @@ export async function PATCH(request: Request) {
   if (typeof body.category === "string") input.category = body.category.trim().slice(0, 40);
   if (typeof body.dueDate === "string" && (!body.dueDate || /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate))) input.dueDate = body.dueDate;
   if (!Object.keys(input).length) return json(request, { error: "No valid task changes" }, { status: 400 });
-  const task = await updateTask(body.id, input);
+  const task = await updateTask(body.id, userId, input);
   if (task && body.completed === true) {
     try {
-      const session = await getServerSession(authOptions);
-      const userId = session?.user?.id || "anonymous";
       void awardUserXp(userId, {
         type: "task_completed",
         description: `Completed task: "${task.title.slice(0, 40)}"`,
@@ -69,8 +79,13 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
+  if (!userId) {
+    return json(request, { error: "Sign in required to delete tasks." }, { status: 401 });
+  }
   const body = await request.json().catch(() => null);
   const id = typeof body?.id === "string" ? body.id : new URL(request.url).searchParams.get("id");
   if (!id) return json(request, { error: "A task id is required" }, { status: 400 });
-  return (await deleteTask(id)) ? json(request, { ok: true }) : json(request, { error: "Task not found" }, { status: 404 });
+  return (await deleteTask(id, userId)) ? json(request, { ok: true }) : json(request, { error: "Task not found" }, { status: 404 });
 }

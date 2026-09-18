@@ -98,15 +98,18 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
   const admin = isAdmin(session);
-  const tasks = await listTasks();
+  const tasks = await listTasks(userId);
   const calendarEvents = await listCalendarEvents(userId);
   const gpaClasses = await listGpaClasses(userId);
   const today = todayKey();
 
   if (normalized.includes("add a task") || normalized.startsWith("add task")) {
+    if (!userId) {
+      return jsonResponse(request, { reply: "Sign in with Google or Microsoft first, and I can add tasks for you.", action: "sign-in-required" });
+    }
     const title = message.replace(/^add\s+(a\s+)?task\s*:?\s*/i, "").trim();
     if (!title) return jsonResponse(request, { reply: "Sure — what should I add to your task list?", action: "add-task" });
-    const task = await addTask({ title, completed: false, priority: "Medium", category: "TT Bot", dueDate: "" });
+    const task = await addTask({ userId, title, completed: false, priority: "Medium", category: "TT Bot", dueDate: "" });
     return jsonResponse(request, { reply: `Done — I added “${task.title}” to your tasks.`, action: "task-created", task });
   }
 

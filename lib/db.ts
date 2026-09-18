@@ -286,6 +286,7 @@ export async function getAdminAiAnalytics() {
 
 export type Task = {
   id: string;
+  userId?: string;
   title: string;
   completed: boolean;
   priority: "Low" | "Medium" | "High";
@@ -296,8 +297,13 @@ export type Task = {
 
 const tasks = () => db.collection<Task>("tasks");
 
-export async function listTasks() {
-  return tasks().find({}, { projection: { _id: 0 } }).sort({ completed: 1, title: 1 }).toArray();
+export async function listTasks(userId?: string) {
+  // Only return tasks belonging to the signed-in user. Legacy documents saved
+  // before userId tracking existed (no userId field) are excluded from any
+  // user's list to avoid leaking data across accounts; unauthenticated
+  // requests get an empty list.
+  if (!userId) return [];
+  return tasks().find({ userId }, { projection: { _id: 0 } }).sort({ completed: 1, title: 1 }).toArray();
 }
 
 export async function addTask(input: Omit<Task, "id">) {
@@ -306,14 +312,14 @@ export async function addTask(input: Omit<Task, "id">) {
   return task;
 }
 
-export async function updateTask(id: string, changes: Partial<Omit<Task, "id">>) {
+export async function updateTask(id: string, userId: string, changes: Partial<Omit<Task, "id" | "userId">>) {
   const update: UpdateFilter<Task> = { $set: changes };
-  const result = await tasks().findOneAndUpdate({ id }, update, { returnDocument: "after", projection: { _id: 0 } });
+  const result = await tasks().findOneAndUpdate({ id, userId }, update, { returnDocument: "after", projection: { _id: 0 } });
   return result;
 }
 
-export async function deleteTask(id: string) {
-  const result = await tasks().deleteOne({ id });
+export async function deleteTask(id: string, userId: string) {
+  const result = await tasks().deleteOne({ id, userId });
   return result.deletedCount > 0;
 }
 
