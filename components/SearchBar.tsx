@@ -34,6 +34,7 @@ const pages: SearchResult[] = [
   { id: "focus", title: "Focus", detail: "Focus mode timer", type: "Page", href: "/focus" },
   { id: "calendar", title: "Calendar", detail: "Events and integrations", type: "Page", href: "/calendar" },
   { id: "gpa", title: "GPA Tracker", detail: "Course grades and point tracker", type: "Page", href: "/gpa" },
+  { id: "resume", title: "Resume Builder", detail: "Build and export an ATS-friendly resume", type: "Page", href: "/resume" },
   { id: "profile", title: "Profile", detail: "Account and preferences", type: "Page", href: "/profile" },
   { id: "settings", title: "Settings", detail: "App settings", type: "Page", href: "/settings" },
 ];

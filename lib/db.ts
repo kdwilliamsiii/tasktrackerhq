@@ -399,6 +399,74 @@ export async function deleteGpaClassDb(id: string) {
   return result.deletedCount > 0;
 }
 
+// -------------------------------------------------------------
+// Resume Builder
+// -------------------------------------------------------------
+export type ResumeExperience = {
+  id: string;
+  role: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  bullets: string[];
+};
+
+export type ResumeEducation = {
+  id: string;
+  school: string;
+  degree: string;
+  field: string;
+  startDate: string;
+  endDate: string;
+};
+
+export type ResumeProject = {
+  id: string;
+  name: string;
+  description: string;
+  link: string;
+};
+
+export type ResumeData = {
+  userId?: string;
+  fullName: string;
+  title: string;
+  email: string;
+  phone: string;
+  location: string;
+  linkedin: string;
+  website: string;
+  summary: string;
+  experience: ResumeExperience[];
+  education: ResumeEducation[];
+  skills: string[];
+  projects: ResumeProject[];
+  updatedAt: string;
+};
+
+const resumeCollection = () => db.collection<{ userId: string } & ResumeData>("resumes");
+
+export async function getUserResume(userId: string): Promise<ResumeData | null> {
+  const record = await resumeCollection().findOne({ userId }, { projection: { _id: 0 } });
+  return record as ResumeData | null;
+}
+
+export async function saveUserResume(
+  userId: string,
+  input: Omit<ResumeData, "userId" | "updatedAt">
+): Promise<ResumeData> {
+  const doc: ResumeData = { ...input, userId, updatedAt: new Date().toISOString() };
+  await resumeCollection().updateOne({ userId }, { $set: doc }, { upsert: true });
+  return doc;
+}
+
+export async function deleteUserResume(userId: string) {
+  const result = await resumeCollection().deleteOne({ userId });
+  return result.deletedCount > 0;
+}
+
 export type AiUsageLog = {
   id: string;
   userId: string;

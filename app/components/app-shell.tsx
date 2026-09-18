@@ -10,6 +10,7 @@ import {
   Timer,
   CalendarDays,
   GraduationCap,
+  FileText,
   User,
   Settings,
   Lightbulb,
@@ -34,6 +35,7 @@ const navigation = [
   { href: "/focus", label: "Focus", icon: Timer },
   { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/gpa", label: "GPA Tracker", icon: GraduationCap },
+  { href: "/resume", label: "Resume Builder", icon: FileText },
   { href: "/rewards", label: "HQ Rewards", icon: Trophy },
   { href: "/profile", label: "Profile", icon: User },
 ];
