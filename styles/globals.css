@@ -2689,13 +2689,29 @@ html, body, .app-frame, .main-content {
   #resume-print-area * {
     visibility: visible;
   }
+  .resume-preview-panel {
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    box-shadow: none !important;
+  }
+  .resume-preview-column {
+    position: static !important;
+  }
   #resume-print-area {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100%;
     border: 0;
     border-radius: 0;
     padding: 24px;
+  }
+  .resume-print-entry {
+    page-break-inside: avoid;
+  }
+  .resume-print-section h3 {
+    page-break-after: avoid;
   }
 }
 

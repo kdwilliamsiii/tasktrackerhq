@@ -140,13 +140,25 @@ function monthLabel(value: string) {
 export default function ResumePage() {
   const { isAuthenticated, requireAuth } = useAuthGate();
   const { notify } = useNotifications();
-  const [resume, setResume] = useState<ResumeState>(emptyResume);
+  const [resume, setResumeRaw] = useState<ResumeState>(emptyResume);
   const [skillInput, setSkillInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [polishingId, setPolishingId] = useState<string | null>(null);
   const loadedOnce = useRef(false);
+  // Tracks whether the user has made edits since the last load/save, so a
+  // background sync refresh (triggered by focus/visibility/other-tab events)
+  // never clobbers in-progress, unsaved edits like newly added bullet points.
+  const isDirtyRef = useRef(false);
+
+  // All user-driven edits go through this wrapper, which marks the draft dirty.
+  const setResume = useCallback((updater: ResumeState | ((current: ResumeState) => ResumeState)) => {
+    isDirtyRef.current = true;
+    setResumeRaw(updater);
+  }, []);
 
   const loadResume = useCallback(async () => {
+    // Never overwrite edits the user hasn't saved yet.
+    if (isDirtyRef.current) return;
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       const localDraft: ResumeState | null = stored ? JSON.parse(stored) : null;
@@ -159,22 +171,22 @@ export default function ResumePage() {
       }
 
       if (serverResume) {
-        setResume(serverResume);
+        setResumeRaw(serverResume);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(serverResume));
       } else if (localDraft) {
-        setResume(localDraft);
+        setResumeRaw(localDraft);
       } else if (!isAuthenticated) {
-        setResume(DEMO_RESUME);
+        setResumeRaw(DEMO_RESUME);
       } else {
-        setResume(emptyResume);
+        setResumeRaw(emptyResume);
       }
     } catch {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         const parsed = stored ? JSON.parse(stored) : null;
-        setResume(parsed || (!isAuthenticated ? DEMO_RESUME : emptyResume));
+        setResumeRaw(parsed || (!isAuthenticated ? DEMO_RESUME : emptyResume));
       } catch {
-        setResume(!isAuthenticated ? DEMO_RESUME : emptyResume);
+        setResumeRaw(!isAuthenticated ? DEMO_RESUME : emptyResume);
       }
     } finally {
       loadedOnce.current = true;
@@ -366,6 +378,7 @@ export default function ResumePage() {
       });
       if (!response.ok) throw new Error("Unable to save resume");
       localStorage.setItem(STORAGE_KEY, JSON.stringify(resume));
+      isDirtyRef.current = false;
       broadcastDataChanged("resume-saved");
       notify("Resume saved.", "success");
     } catch {
