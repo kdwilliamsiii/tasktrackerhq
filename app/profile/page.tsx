@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Trophy, Flame, Zap, Award } from "lucide-react";
 import { AppShell } from "../components/app-shell";
 import ThemeCustomizer from "../../components/ThemeCustomizer";
+import { clearLocalUserData } from "../../lib/sync";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
@@ -40,8 +41,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch("/api/profile", { method: "DELETE" });
       if (!response.ok) throw new Error("Unable to delete account");
-      localStorage.removeItem("tasktracker-events");
-      localStorage.removeItem("tasktracker-focus-stats");
+      clearLocalUserData();
       await signOut({ callbackUrl: "/" });
     } catch {
       setError("Your account could not be deleted. Please try again.");
@@ -91,7 +91,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </section>
-      <section className="panel"><div className="settings-heading"><div><h2>Connected accounts</h2><p>Accounts available for calendar access.</p></div></div><div className="connected-account"><span className="connected-account-mark">{providerName === "Google" ? "G" : "M"}</span><div><strong>{providerName}</strong><small>{providerName} account connected</small></div><span className="connected-status">Connected</span></div><div className="button-row profile-account-actions"><button className="filter-button" onClick={() => void signIn(providerName === "Google" ? "google" : "azure-ad", { callbackUrl: "/profile" })}>Reconnect</button><button className="filter-button integration-connected" onClick={() => void signOut({ callbackUrl: "/" })}>Disconnect</button></div></section>
+      <section className="panel"><div className="settings-heading"><div><h2>Connected accounts</h2><p>Accounts available for calendar access.</p></div></div><div className="connected-account"><span className="connected-account-mark">{providerName === "Google" ? "G" : "M"}</span><div><strong>{providerName}</strong><small>{providerName} account connected</small></div><span className="connected-status">Connected</span></div><div className="button-row profile-account-actions"><button className="filter-button" onClick={() => void signIn(providerName === "Google" ? "google" : "azure-ad", { callbackUrl: "/profile" })}>Reconnect</button><button className="filter-button integration-connected" onClick={() => { clearLocalUserData(); void signOut({ callbackUrl: "/" }); }}>Disconnect</button></div></section>
       <ThemeCustomizer />
       <section className="panel danger-zone"><h2>Delete account</h2><p className="panel-subtitle">Permanently remove your stored TaskTrackerHQ profile. This action cannot be undone.</p>{error && <p className="form-error" role="alert">{error}</p>}<button className="danger-button" onClick={() => void deleteAccount()} disabled={deleting}>{deleting ? "Deleting..." : "Delete my account"}</button></section>
     </div>

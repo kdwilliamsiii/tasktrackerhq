@@ -7,6 +7,35 @@
 const SYNC_CHANNEL_NAME = "tasktracker-sync";
 const STORAGE_SYNC_KEY = "tasktracker-last-sync";
 
+// Keys that hold cached copies of a signed-in user's personal data. These must
+// be wiped on sign-out/disconnect/account-deletion so the next person to use
+// this browser (e.g. a shared device) doesn't see the previous user's cached
+// events, grades, resume draft, notes, etc. in the guest/preview experience.
+const LOCAL_USER_DATA_KEYS = [
+  "tasktracker-events",
+  "tasktracker-gpa-classes",
+  "tasktracker-resume-draft",
+  "tasktracker-focus-stats",
+  "tasktracker-notes",
+  "tasktracker-reminders",
+];
+
+/**
+ * Remove all locally cached personal data from this browser. Call this
+ * whenever a user signs out, disconnects a provider, or deletes their
+ * account, so no residual personal data is visible to the next guest.
+ */
+export function clearLocalUserData() {
+  if (typeof window === "undefined") return;
+  for (const key of LOCAL_USER_DATA_KEYS) {
+    try {
+      window.localStorage.removeItem(key);
+    } catch {
+      // ignore storage access errors (e.g. private browsing restrictions)
+    }
+  }
+}
+
 let broadcastChannel: BroadcastChannel | null = null;
 
 if (typeof window !== "undefined" && "BroadcastChannel" in window) {
